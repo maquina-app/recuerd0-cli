@@ -31,5 +31,8 @@ Thumbs.db
 # Local config
 .recuerd0.yaml
 
+# Docs (internal)
+docs/RELEASING.md
+
 # Transcripts
 transcripts/

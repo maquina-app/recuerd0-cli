@@ -90,7 +90,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          curl -sL "https://github.com/maquina/recuerd0-cli/releases/download/v${VERSION}/recuerd0-linux-${{ matrix.goarch }}" -o recuerd0
+          curl -sL "https://github.com/maquina-app/recuerd0-cli/releases/download/v${VERSION}/recuerd0-linux-${{ matrix.goarch }}" -o recuerd0
           chmod +x recuerd0
 
       - name: Build .deb package
@@ -114,7 +114,7 @@ jobs:
           Maintainer: Mario Alberto Chávez Cárdenas <mario@maquina.app>
           Description: CLI for preserving, versioning, and organizing knowledge from AI conversations
            A command-line interface for the Recuerd0 API.
-          Homepage: https://github.com/maquina/recuerd0-cli
+          Homepage: https://github.com/maquina-app/recuerd0-cli
           EOF
 
           sed -i 's/^          //' "${PKG_ROOT}/DEBIAN/control"
@@ -138,7 +138,7 @@ jobs:
           Release:        1
           Summary:        CLI for preserving, versioning, and organizing knowledge from AI conversations
           License:        MIT
-          URL:            https://github.com/maquina/recuerd0-cli
+          URL:            https://github.com/maquina-app/recuerd0-cli
 
           %description
           A command-line interface for the Recuerd0 API.
@@ -173,8 +173,8 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
 
-          curl -sL "https://github.com/maquina/recuerd0-cli/releases/download/v${VERSION}/SHA256SUMS-darwin-amd64.txt" -o sha256-amd64.txt
-          curl -sL "https://github.com/maquina/recuerd0-cli/releases/download/v${VERSION}/SHA256SUMS-darwin-arm64.txt" -o sha256-arm64.txt
+          curl -sL "https://github.com/maquina-app/recuerd0-cli/releases/download/v${VERSION}/SHA256SUMS-darwin-amd64.txt" -o sha256-amd64.txt
+          curl -sL "https://github.com/maquina-app/recuerd0-cli/releases/download/v${VERSION}/SHA256SUMS-darwin-arm64.txt" -o sha256-arm64.txt
 
           SHA256_AMD64=$(cut -d' ' -f1 sha256-amd64.txt)
           SHA256_ARM64=$(cut -d' ' -f1 sha256-arm64.txt)
@@ -182,25 +182,25 @@ jobs:
           cat > recuerd0-cli.rb << 'FORMULA'
           class Recuerd0Cli < Formula
             desc "CLI for preserving, versioning, and organizing knowledge from AI conversations"
-            homepage "https://github.com/maquina/recuerd0-cli"
+            homepage "https://github.com/maquina-app/recuerd0-cli"
             version "VERSION_PLACEHOLDER"
             license "MIT"
 
             on_macos do
               if Hardware::CPU.arm?
-                url "https://github.com/maquina/recuerd0-cli/releases/download/v#{version}/recuerd0-darwin-arm64"
+                url "https://github.com/maquina-app/recuerd0-cli/releases/download/v#{version}/recuerd0-darwin-arm64"
                 sha256 "SHA256_ARM64_PLACEHOLDER"
               else
-                url "https://github.com/maquina/recuerd0-cli/releases/download/v#{version}/recuerd0-darwin-amd64"
+                url "https://github.com/maquina-app/recuerd0-cli/releases/download/v#{version}/recuerd0-darwin-amd64"
                 sha256 "SHA256_AMD64_PLACEHOLDER"
               end
             end
 
             on_linux do
               if Hardware::CPU.arm?
-                url "https://github.com/maquina/recuerd0-cli/releases/download/v#{version}/recuerd0-linux-arm64"
+                url "https://github.com/maquina-app/recuerd0-cli/releases/download/v#{version}/recuerd0-linux-arm64"
               else
-                url "https://github.com/maquina/recuerd0-cli/releases/download/v#{version}/recuerd0-linux-amd64"
+                url "https://github.com/maquina-app/recuerd0-cli/releases/download/v#{version}/recuerd0-linux-amd64"
               end
             end
 
@@ -220,8 +220,8 @@ jobs:
           sed -i "s/SHA256_ARM64_PLACEHOLDER/${SHA256_ARM64}/" recuerd0-cli.rb
           sed -i "s/SHA256_AMD64_PLACEHOLDER/${SHA256_AMD64}/" recuerd0-cli.rb
 
-          git clone https://x-access-token:${GH_TOKEN}@github.com/maquina/homebrew-recuerd0-cli.git
-          cd homebrew-recuerd0-cli
+          git clone https://x-access-token:${GH_TOKEN}@github.com/maquina-app/homebrew-tap.git
+          cd homebrew-tap
           mkdir -p Formula
           cp ../recuerd0-cli.rb Formula/recuerd0-cli.rb
           git config user.name "github-actions[bot]"

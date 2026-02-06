@@ -6,25 +6,45 @@ A product by [maquina](https://maquina.app).
 
 ## Installation
 
-### From release binaries
+**macOS (Homebrew)**
+```bash
+brew install maquina-app/homebrew-tap/recuerd0-cli
+```
 
-Download the latest binary for your platform from the [releases page](https://github.com/maquina/recuerd0-cli/releases).
+**Debian/Ubuntu**
+```bash
+# Download the .deb for your architecture (amd64 or arm64)
+curl -LO https://github.com/maquina-app/recuerd0-cli/releases/latest/download/recuerd0-cli_VERSION_amd64.deb
+sudo dpkg -i recuerd0-cli_VERSION_amd64.deb
+```
 
-### From source
+**Fedora/RHEL**
+```bash
+# Download the .rpm for your architecture (x86_64 or aarch64)
+curl -LO https://github.com/maquina-app/recuerd0-cli/releases/latest/download/recuerd0-cli-VERSION-1.x86_64.rpm
+sudo rpm -i recuerd0-cli-VERSION-1.x86_64.rpm
+```
 
+**Windows**
+
+Download `recuerd0-windows-amd64.exe` from [GitHub Releases](https://github.com/maquina-app/recuerd0-cli/releases), rename it to `recuerd0.exe`, and add it to your PATH.
+
+**With Go**
 ```bash
 go install github.com/maquina/recuerd0-cli/cmd/recuerd0@latest
 ```
 
-### Build locally
+**From binary**
 
+Download the latest release for your platform from [GitHub Releases](https://github.com/maquina-app/recuerd0-cli/releases) and add it to your PATH.
+
+**From source**
 ```bash
-git clone https://github.com/maquina/recuerd0-cli.git
+git clone https://github.com/maquina-app/recuerd0-cli.git
 cd recuerd0-cli
 make build
+./bin/recuerd0 --help
 ```
-
-The binary will be at `bin/recuerd0`.
 
 ## Quick Start
 
