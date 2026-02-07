@@ -75,7 +75,7 @@ var memoryVersionCreateCmd = &cobra.Command{
 		body := map[string]interface{}{"version": version}
 
 		apiClient := getClient()
-		resp, err := apiClient.Post(fmt.Sprintf("/api/v1/workspaces/%s/memories/%s/versions", ws, args[0]), body)
+		resp, err := apiClient.Post(fmt.Sprintf("/workspaces/%s/memories/%s/versions", ws, args[0]), body)
 		if err != nil {
 			exitWithError(err)
 			return

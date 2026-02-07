@@ -27,7 +27,7 @@ func TestWorkspaceArchive(t *testing.T) {
 	if len(mock.PatchCalls) != 1 {
 		t.Fatalf("expected 1 Patch call, got %d", len(mock.PatchCalls))
 	}
-	if mock.PatchCalls[0].Path != "/api/v1/workspaces/5/archive" {
+	if mock.PatchCalls[0].Path != "/workspaces/5/archive" {
 		t.Errorf("unexpected path: %s", mock.PatchCalls[0].Path)
 	}
 }
@@ -50,7 +50,7 @@ func TestWorkspaceUnarchive(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.PatchCalls[0].Path != "/api/v1/workspaces/5/unarchive" {
+	if mock.PatchCalls[0].Path != "/workspaces/5/unarchive" {
 		t.Errorf("unexpected path: %s", mock.PatchCalls[0].Path)
 	}
 }

@@ -30,7 +30,7 @@ var searchCmd = &cobra.Command{
 			return
 		}
 
-		path := "/api/v1/search?q=" + query
+		path := "/search?q=" + query
 		if searchWorkspace != "" {
 			path += "&workspace_id=" + searchWorkspace
 		}

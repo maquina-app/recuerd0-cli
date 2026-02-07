@@ -30,7 +30,7 @@ func TestSearch(t *testing.T) {
 	if !result.Response.Success {
 		t.Error("expected success response")
 	}
-	if mock.GetCalls[0].Path != "/api/v1/search?q=golang patterns" {
+	if mock.GetCalls[0].Path != "/search?q=golang patterns" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -57,7 +57,7 @@ func TestSearch_WithWorkspace(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.GetCalls[0].Path != "/api/v1/search?q=test&workspace_id=5" {
+	if mock.GetCalls[0].Path != "/search?q=test&workspace_id=5" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -84,7 +84,7 @@ func TestSearch_WithPage(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.GetCalls[0].Path != "/api/v1/search?q=query&page=3" {
+	if mock.GetCalls[0].Path != "/search?q=query&page=3" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }

@@ -30,7 +30,7 @@ func TestMemoryList(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.GetCalls[0].Path != "/api/v1/workspaces/5/memories" {
+	if mock.GetCalls[0].Path != "/workspaces/5/memories" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -56,7 +56,7 @@ func TestMemoryList_WithExplicitWorkspace(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.GetCalls[0].Path != "/api/v1/workspaces/99/memories" {
+	if mock.GetCalls[0].Path != "/workspaces/99/memories" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -101,7 +101,7 @@ func TestMemoryShow(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.GetCalls[0].Path != "/api/v1/workspaces/5/memories/42" {
+	if mock.GetCalls[0].Path != "/workspaces/5/memories/42" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -137,7 +137,7 @@ func TestMemoryCreate(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.PostCalls[0].Path != "/api/v1/workspaces/5/memories" {
+	if mock.PostCalls[0].Path != "/workspaces/5/memories" {
 		t.Errorf("unexpected path: %s", mock.PostCalls[0].Path)
 	}
 
@@ -231,7 +231,7 @@ func TestMemoryUpdate(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.PatchCalls[0].Path != "/api/v1/workspaces/5/memories/42" {
+	if mock.PatchCalls[0].Path != "/workspaces/5/memories/42" {
 		t.Errorf("unexpected path: %s", mock.PatchCalls[0].Path)
 	}
 }
@@ -274,7 +274,7 @@ func TestMemoryDelete(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.DeleteCalls[0].Path != "/api/v1/workspaces/5/memories/42" {
+	if mock.DeleteCalls[0].Path != "/workspaces/5/memories/42" {
 		t.Errorf("unexpected path: %s", mock.DeleteCalls[0].Path)
 	}
 }

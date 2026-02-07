@@ -42,7 +42,7 @@ func TestMemoryVersionCreate(t *testing.T) {
 	if len(mock.PostCalls) != 1 {
 		t.Fatalf("expected 1 Post call, got %d", len(mock.PostCalls))
 	}
-	if mock.PostCalls[0].Path != "/api/v1/workspaces/5/memories/42/versions" {
+	if mock.PostCalls[0].Path != "/workspaces/5/memories/42/versions" {
 		t.Errorf("unexpected path: %s", mock.PostCalls[0].Path)
 	}
 

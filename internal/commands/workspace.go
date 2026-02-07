@@ -26,7 +26,7 @@ var workspaceListCmd = &cobra.Command{
 			return
 		}
 
-		path := "/api/v1/workspaces"
+		path := "/workspaces"
 		if workspaceListPage != "" {
 			path += "?page=" + workspaceListPage
 		}
@@ -63,7 +63,7 @@ var workspaceShowCmd = &cobra.Command{
 		}
 
 		apiClient := getClient()
-		resp, err := apiClient.Get("/api/v1/workspaces/" + args[0])
+		resp, err := apiClient.Get("/workspaces/" + args[0])
 		if err != nil {
 			exitWithError(err)
 			return
@@ -106,7 +106,7 @@ var workspaceCreateCmd = &cobra.Command{
 		}
 
 		apiClient := getClient()
-		resp, err := apiClient.Post("/api/v1/workspaces", body)
+		resp, err := apiClient.Post("/workspaces", body)
 		if err != nil {
 			exitWithError(err)
 			return
@@ -152,7 +152,7 @@ var workspaceUpdateCmd = &cobra.Command{
 		body := map[string]interface{}{"workspace": workspace}
 
 		apiClient := getClient()
-		resp, err := apiClient.Patch("/api/v1/workspaces/"+args[0], body)
+		resp, err := apiClient.Patch("/workspaces/"+args[0], body)
 		if err != nil {
 			exitWithError(err)
 			return

@@ -19,7 +19,7 @@ var workspaceArchiveCmd = &cobra.Command{
 		}
 
 		apiClient := getClient()
-		resp, err := apiClient.Patch("/api/v1/workspaces/"+args[0]+"/archive", nil)
+		resp, err := apiClient.Patch("/workspaces/"+args[0]+"/archive", nil)
 		if err != nil {
 			exitWithError(err)
 			return
@@ -45,7 +45,7 @@ var workspaceUnarchiveCmd = &cobra.Command{
 		}
 
 		apiClient := getClient()
-		resp, err := apiClient.Patch("/api/v1/workspaces/"+args[0]+"/unarchive", nil)
+		resp, err := apiClient.Patch("/workspaces/"+args[0]+"/unarchive", nil)
 		if err != nil {
 			exitWithError(err)
 			return

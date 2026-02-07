@@ -34,7 +34,7 @@ func TestWorkspaceList(t *testing.T) {
 	if len(mock.GetCalls) != 1 {
 		t.Errorf("expected 1 Get call, got %d", len(mock.GetCalls))
 	}
-	if mock.GetCalls[0].Path != "/api/v1/workspaces" {
+	if mock.GetCalls[0].Path != "/workspaces" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -60,7 +60,7 @@ func TestWorkspaceList_WithPage(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.GetCalls[0].Path != "/api/v1/workspaces?page=2" {
+	if mock.GetCalls[0].Path != "/workspaces?page=2" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -101,7 +101,7 @@ func TestWorkspaceShow(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.GetCalls[0].Path != "/api/v1/workspaces/5" {
+	if mock.GetCalls[0].Path != "/workspaces/5" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -131,7 +131,7 @@ func TestWorkspaceCreate(t *testing.T) {
 	if len(mock.PostCalls) != 1 {
 		t.Fatalf("expected 1 Post call, got %d", len(mock.PostCalls))
 	}
-	if mock.PostCalls[0].Path != "/api/v1/workspaces" {
+	if mock.PostCalls[0].Path != "/workspaces" {
 		t.Errorf("unexpected path: %s", mock.PostCalls[0].Path)
 	}
 }
@@ -175,7 +175,7 @@ func TestWorkspaceUpdate(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.PatchCalls[0].Path != "/api/v1/workspaces/5" {
+	if mock.PatchCalls[0].Path != "/workspaces/5" {
 		t.Errorf("unexpected path: %s", mock.PatchCalls[0].Path)
 	}
 }

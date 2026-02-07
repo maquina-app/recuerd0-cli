@@ -3,7 +3,7 @@
 ## Base URL
 
 ```
-https://recuerd0.ai/api/v1
+https://recuerd0.ai
 ```
 
 ## Authentication
@@ -12,7 +12,10 @@ All API requests require a Bearer token in the `Authorization` header:
 
 ```
 Authorization: Bearer <token>
+Content-Type: application/json
 ```
+
+All requests must include `Content-Type: application/json` and `Accept: application/json` headers.
 
 ## Endpoints
 

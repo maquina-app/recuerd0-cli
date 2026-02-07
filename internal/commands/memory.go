@@ -45,7 +45,7 @@ var memoryListCmd = &cobra.Command{
 			return
 		}
 
-		path := fmt.Sprintf("/api/v1/workspaces/%s/memories", ws)
+		path := fmt.Sprintf("/workspaces/%s/memories", ws)
 		if memoryListPage != "" {
 			path += "?page=" + memoryListPage
 		}
@@ -89,7 +89,7 @@ var memoryShowCmd = &cobra.Command{
 		}
 
 		apiClient := getClient()
-		resp, err := apiClient.Get(fmt.Sprintf("/api/v1/workspaces/%s/memories/%s", ws, args[0]))
+		resp, err := apiClient.Get(fmt.Sprintf("/workspaces/%s/memories/%s", ws, args[0]))
 		if err != nil {
 			exitWithError(err)
 			return
@@ -155,7 +155,7 @@ var memoryCreateCmd = &cobra.Command{
 		body := map[string]interface{}{"memory": memory}
 
 		apiClient := getClient()
-		resp, err := apiClient.Post(fmt.Sprintf("/api/v1/workspaces/%s/memories", ws), body)
+		resp, err := apiClient.Post(fmt.Sprintf("/workspaces/%s/memories", ws), body)
 		if err != nil {
 			exitWithError(err)
 			return
@@ -226,7 +226,7 @@ var memoryUpdateCmd = &cobra.Command{
 		body := map[string]interface{}{"memory": memory}
 
 		apiClient := getClient()
-		resp, err := apiClient.Patch(fmt.Sprintf("/api/v1/workspaces/%s/memories/%s", ws, args[0]), body)
+		resp, err := apiClient.Patch(fmt.Sprintf("/workspaces/%s/memories/%s", ws, args[0]), body)
 		if err != nil {
 			exitWithError(err)
 			return
@@ -259,7 +259,7 @@ var memoryDeleteCmd = &cobra.Command{
 		}
 
 		apiClient := getClient()
-		_, err = apiClient.Delete(fmt.Sprintf("/api/v1/workspaces/%s/memories/%s", ws, args[0]))
+		_, err = apiClient.Delete(fmt.Sprintf("/workspaces/%s/memories/%s", ws, args[0]))
 		if err != nil {
 			exitWithError(err)
 			return
