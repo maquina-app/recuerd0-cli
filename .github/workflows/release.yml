@@ -167,17 +167,34 @@ jobs:
     needs: build
     if: github.event_name == 'release'
     steps:
+      - name: Download macOS binaries and compute checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+
+          gh release download "v${VERSION}" \
+            --repo maquina-app/recuerd0-cli \
+            --pattern "recuerd0-darwin-amd64" \
+            --pattern "recuerd0-darwin-arm64"
+
+          SHA256_AMD64=$(sha256sum recuerd0-darwin-amd64 | cut -d' ' -f1)
+          SHA256_ARM64=$(sha256sum recuerd0-darwin-arm64 | cut -d' ' -f1)
+
+          echo "SHA256_AMD64=${SHA256_AMD64}" >> "$GITHUB_ENV"
+          echo "SHA256_ARM64=${SHA256_ARM64}" >> "$GITHUB_ENV"
+
+          # Validate checksums are 64-char hex strings
+          if [[ ! "${SHA256_AMD64}" =~ ^[0-9a-f]{64}$ ]] || [[ ! "${SHA256_ARM64}" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::Invalid SHA256 checksum detected"
+            exit 1
+          fi
+
       - name: Update Homebrew Formula
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-
-          curl -sL "https://github.com/maquina-app/recuerd0-cli/releases/download/v${VERSION}/SHA256SUMS-darwin-amd64.txt" -o sha256-amd64.txt
-          curl -sL "https://github.com/maquina-app/recuerd0-cli/releases/download/v${VERSION}/SHA256SUMS-darwin-arm64.txt" -o sha256-arm64.txt
-
-          SHA256_AMD64=$(cut -d' ' -f1 sha256-amd64.txt)
-          SHA256_ARM64=$(cut -d' ' -f1 sha256-arm64.txt)
 
           cat > recuerd0-cli.rb << 'FORMULA'
           class Recuerd0Cli < Formula
