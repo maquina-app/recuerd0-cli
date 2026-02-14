@@ -45,7 +45,7 @@ var workspaceUnarchiveCmd = &cobra.Command{
 		}
 
 		apiClient := getClient()
-		resp, err := apiClient.Delete("/workspaces/"+args[0]+"/archive")
+		resp, err := apiClient.Delete("/workspaces/" + args[0] + "/archive")
 		if err != nil {
 			exitWithError(err)
 			return
