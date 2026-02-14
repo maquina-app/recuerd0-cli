@@ -76,6 +76,25 @@ recuerd0 memory version create [--workspace ID] <memory_id> [--title T] [--conte
 recuerd0 search <query> [--workspace ID] [--page N]
 ```
 
+Search is backed by SQLite FTS5 and supports operators:
+
+```bash
+# Prefix matching
+recuerd0 search "auth*"
+
+# AND — both terms required
+recuerd0 search "rails AND caching"
+
+# OR — either term
+recuerd0 search "postgres OR sqlite"
+
+# NOT — exclude terms
+recuerd0 search "deploy NOT heroku"
+
+# Phrases
+recuerd0 search '"error handling"'
+```
+
 ### Version
 
 ```bash

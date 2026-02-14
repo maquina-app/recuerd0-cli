@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"gopkg.in/yaml.v3"
 )
@@ -53,15 +54,56 @@ func globalConfigPath() string {
 	if configDir != "" {
 		return filepath.Join(configDir, globalFileName)
 	}
-	home, err := os.UserConfigDir()
-	if err != nil {
-		home = filepath.Join(os.Getenv("HOME"), ".config")
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		return filepath.Join(xdg, globalDir, globalFileName)
 	}
-	return filepath.Join(home, globalDir, globalFileName)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = os.Getenv("HOME")
+	}
+	return filepath.Join(home, ".config", globalDir, globalFileName)
+}
+
+// DEPRECATED: Remove this migration function in the next release.
+// migrateFromLegacyPath moves the config from the old macOS-specific path
+// (~/Library/Application Support/recuerd0/config.yaml) to the new XDG path
+// (~/.config/recuerd0/config.yaml).
+func migrateFromLegacyPath() {
+	if runtime.GOOS != "darwin" {
+		return
+	}
+	if configDir != "" {
+		return
+	}
+	if os.Getenv("XDG_CONFIG_HOME") != "" {
+		return
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	oldPath := filepath.Join(home, "Library", "Application Support", globalDir, globalFileName)
+	newPath := filepath.Join(home, ".config", globalDir, globalFileName)
+
+	if _, err := os.Stat(newPath); err == nil {
+		return
+	}
+	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
+		return
+	}
+
+	if err := os.MkdirAll(filepath.Dir(newPath), 0700); err != nil {
+		return
+	}
+	os.Rename(oldPath, newPath)
 }
 
 // LoadGlobal reads the global config from disk.
 func LoadGlobal() (*GlobalConfig, error) {
+	// DEPRECATED: Remove this call in the next release.
+	migrateFromLegacyPath()
 	path := globalConfigPath()
 	data, err := os.ReadFile(path)
 	if err != nil {
