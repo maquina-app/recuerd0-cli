@@ -75,9 +75,6 @@ func migrateFromLegacyPath() {
 	if configDir != "" {
 		return
 	}
-	if os.Getenv("XDG_CONFIG_HOME") != "" {
-		return
-	}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -85,7 +82,13 @@ func migrateFromLegacyPath() {
 	}
 
 	oldPath := filepath.Join(home, "Library", "Application Support", globalDir, globalFileName)
-	newPath := filepath.Join(home, ".config", globalDir, globalFileName)
+
+	// Use the same logic as globalConfigPath to determine the new path
+	newBase := os.Getenv("XDG_CONFIG_HOME")
+	if newBase == "" {
+		newBase = filepath.Join(home, ".config")
+	}
+	newPath := filepath.Join(newBase, globalDir, globalFileName)
 
 	if _, err := os.Stat(newPath); err == nil {
 		return
