@@ -86,6 +86,7 @@ recuerd0 memory delete [--workspace ID] <memory_id>
 recuerd0 memory version create [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T]
 
 recuerd0 search <query> [--workspace ID] [--page N]
+  # Supports FTS5 operators: AND, OR, NOT, "phrases", title:field, body:field
 
 recuerd0 version
 ```

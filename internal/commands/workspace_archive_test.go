@@ -8,7 +8,7 @@ import (
 
 func TestWorkspaceArchive(t *testing.T) {
 	mock := NewMockClient()
-	mock.PatchResponse = &client.APIResponse{
+	mock.PostResponse = &client.APIResponse{
 		StatusCode: 200,
 		Data:       map[string]interface{}{"id": "5", "archived": true},
 	}
@@ -24,17 +24,17 @@ func TestWorkspaceArchive(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if len(mock.PatchCalls) != 1 {
-		t.Fatalf("expected 1 Patch call, got %d", len(mock.PatchCalls))
+	if len(mock.PostCalls) != 1 {
+		t.Fatalf("expected 1 Post call, got %d", len(mock.PostCalls))
 	}
-	if mock.PatchCalls[0].Path != "/workspaces/5/archive" {
-		t.Errorf("unexpected path: %s", mock.PatchCalls[0].Path)
+	if mock.PostCalls[0].Path != "/workspaces/5/archive" {
+		t.Errorf("unexpected path: %s", mock.PostCalls[0].Path)
 	}
 }
 
 func TestWorkspaceUnarchive(t *testing.T) {
 	mock := NewMockClient()
-	mock.PatchResponse = &client.APIResponse{
+	mock.DeleteResponse = &client.APIResponse{
 		StatusCode: 200,
 		Data:       map[string]interface{}{"id": "5", "archived": false},
 	}
@@ -50,7 +50,10 @@ func TestWorkspaceUnarchive(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.PatchCalls[0].Path != "/workspaces/5/unarchive" {
-		t.Errorf("unexpected path: %s", mock.PatchCalls[0].Path)
+	if len(mock.DeleteCalls) != 1 {
+		t.Fatalf("expected 1 Delete call, got %d", len(mock.DeleteCalls))
+	}
+	if mock.DeleteCalls[0].Path != "/workspaces/5/archive" {
+		t.Errorf("unexpected path: %s", mock.DeleteCalls[0].Path)
 	}
 }

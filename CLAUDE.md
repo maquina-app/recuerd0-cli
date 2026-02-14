@@ -25,7 +25,7 @@ internal/
   client/client.go                # HTTP implementation with Bearer auth, Link header pagination
   commands/root.go                # Root command, global flags, PersistentPreRun, test infrastructure
   commands/mock_client.go         # Mock client (not _test.go — shared across test files)
-  commands/{account,workspace,memory,search,version}.go  # Command implementations
+  commands/{account,workspace,workspace_archive,memory,search,version}.go  # Command implementations
 ```
 
 Config cascade (highest wins): CLI flags > env vars > local `.recuerd0.yaml` > global `~/.config/recuerd0/config.yaml`

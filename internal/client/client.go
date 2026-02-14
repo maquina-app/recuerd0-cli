@@ -142,17 +142,55 @@ func parseLinkNext(linkHeader string) string {
 // extractErrorMessage tries to pull a message from the API error response.
 func extractErrorMessage(data interface{}, raw []byte) string {
 	if m, ok := data.(map[string]interface{}); ok {
+		// {"error": "message"}
 		if msg, ok := m["error"].(string); ok {
 			return msg
 		}
+		// {"error": {"code": "...", "message": "...", "details": {"field": ["msg"]}}}
+		if errObj, ok := m["error"].(map[string]interface{}); ok {
+			if details, ok := errObj["details"].(map[string]interface{}); ok {
+				var parts []string
+				for field, val := range details {
+					if msgs, ok := val.([]interface{}); ok {
+						for _, msg := range msgs {
+							if s, ok := msg.(string); ok {
+								parts = append(parts, field+" "+s)
+							}
+						}
+					}
+				}
+				if len(parts) > 0 {
+					return strings.Join(parts, "; ")
+				}
+			}
+			if msg, ok := errObj["message"].(string); ok {
+				return msg
+			}
+		}
+		// {"message": "..."}
 		if msg, ok := m["message"].(string); ok {
 			return msg
 		}
-		if errs, ok := m["errors"]; ok {
-			if errList, ok := errs.([]interface{}); ok && len(errList) > 0 {
-				if s, ok := errList[0].(string); ok {
-					return s
+		// {"errors": {"name": ["can't be blank"], ...}} (Rails-style)
+		if errs, ok := m["errors"].(map[string]interface{}); ok {
+			var parts []string
+			for field, val := range errs {
+				if msgs, ok := val.([]interface{}); ok {
+					for _, msg := range msgs {
+						if s, ok := msg.(string); ok {
+							parts = append(parts, field+" "+s)
+						}
+					}
 				}
+			}
+			if len(parts) > 0 {
+				return strings.Join(parts, "; ")
+			}
+		}
+		// {"errors": ["message", ...]}
+		if errs, ok := m["errors"].([]interface{}); ok && len(errs) > 0 {
+			if s, ok := errs[0].(string); ok {
+				return s
 			}
 		}
 	}

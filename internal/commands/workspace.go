@@ -173,6 +173,18 @@ func countItems(data interface{}) int {
 	return 0
 }
 
+func countSearchResults(data interface{}) int {
+	if m, ok := data.(map[string]interface{}); ok {
+		if total, ok := m["total_results"].(float64); ok {
+			return int(total)
+		}
+		if results, ok := m["results"].([]interface{}); ok {
+			return len(results)
+		}
+	}
+	return 0
+}
+
 func init() {
 	rootCmd.AddCommand(workspaceCmd)
 

@@ -46,7 +46,7 @@ var searchCmd = &cobra.Command{
 		}
 
 		hasNext := resp.LinkNext != ""
-		items := countItems(resp.Data)
+		items := countSearchResults(resp.Data)
 		summary := fmt.Sprintf("%d result(s) for %q", items, query)
 
 		bc := []response.Breadcrumb{
