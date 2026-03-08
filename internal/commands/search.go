@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/spf13/cobra"
 
@@ -30,13 +31,15 @@ var searchCmd = &cobra.Command{
 			return
 		}
 
-		path := "/search?q=" + query
+		params := url.Values{}
+		params.Set("q", query)
 		if searchWorkspace != "" {
-			path += "&workspace_id=" + searchWorkspace
+			params.Set("workspace_id", searchWorkspace)
 		}
 		if searchPage != "" {
-			path += "&page=" + searchPage
+			params.Set("page", searchPage)
 		}
+		path := "/search?" + params.Encode()
 
 		apiClient := getClient()
 		resp, err := apiClient.GetWithPagination(path)

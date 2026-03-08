@@ -30,7 +30,7 @@ func TestSearch(t *testing.T) {
 	if !result.Response.Success {
 		t.Error("expected success response")
 	}
-	if mock.GetCalls[0].Path != "/search?q=golang patterns" {
+	if mock.GetCalls[0].Path != "/search?q=golang+patterns" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
@@ -84,7 +84,7 @@ func TestSearch_WithPage(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Errorf("expected exit code 0, got %d", result.ExitCode)
 	}
-	if mock.GetCalls[0].Path != "/search?q=query&page=3" {
+	if mock.GetCalls[0].Path != "/search?page=3&q=query" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
 	}
 }
