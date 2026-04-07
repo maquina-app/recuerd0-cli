@@ -288,6 +288,19 @@ The endpoint supports HTTP caching: `If-None-Match` and `If-Modified-Since` requ
 
 ---
 
+## Memory Categories
+
+Every memory carries a `category` field drawn from a locked enum:
+
+- `decision` — choices the team made, with rationale
+- `discovery` — findings, bug root-causes, new facts about the system
+- `preference` — style/taste/workflow preferences
+- `general` — default bucket for anything else
+
+The server defaults new memories to `general` when omitted. New versions inherit the parent's category unless explicitly overridden. List and search endpoints accept a `category` query parameter to filter by a single category.
+
+---
+
 ## Memories
 
 ### List Memories
@@ -303,6 +316,7 @@ GET /workspaces/:workspace_id/memories.json
 | Name | Type | Description |
 |------|------|-------------|
 | page | integer | Page number (default: 1) |
+| category | string | Filter by category (`decision`, `discovery`, `preference`, `general`) |
 
 **Response**
 
@@ -376,6 +390,7 @@ POST /workspaces/:workspace_id/memories.json
 | memory[content] | string | No | Memory body (Markdown) |
 | memory[source] | string | No | Source identifier |
 | memory[tags] | array | No | Array of tag strings |
+| memory[category] | string | No | One of `decision`, `discovery`, `preference`, `general` (defaults to `general`) |
 
 **Request**
 
@@ -411,6 +426,7 @@ PATCH /workspaces/:workspace_id/memories/:id.json
 | memory[content] | string | Memory body |
 | memory[source] | string | Source identifier |
 | memory[tags] | array | Array of tags |
+| memory[category] | string | One of `decision`, `discovery`, `preference`, `general` |
 
 **Response** `200 OK`
 
@@ -448,6 +464,7 @@ POST /workspaces/:workspace_id/memories/:memory_id/versions.json
 | version[content] | string | Version body (defaults to parent) |
 | version[source] | string | Source identifier (defaults to parent) |
 | version[tags] | array | Tags (defaults to parent) |
+| version[category] | string | One of `decision`, `discovery`, `preference`, `general` (defaults to parent) |
 
 **Request**
 
@@ -501,6 +518,7 @@ GET /search.json?q=<query>
 | q | string | Yes | Search query (3-100 characters) |
 | page | integer | No | Page number (default: 1) |
 | workspace_id | integer | No | Filter results to a specific workspace |
+| category | string | No | Filter results by category (`decision`, `discovery`, `preference`, `general`) |
 
 **Query Operators**
 

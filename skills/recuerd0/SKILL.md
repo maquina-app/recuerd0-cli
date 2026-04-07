@@ -44,10 +44,10 @@ recuerd0 workspace context <id> [--limit N] [--no-body] [--max-body-chars N]
 ### Memories
 
 ```bash
-recuerd0 memory list --workspace <ws_id> [--page N]
+recuerd0 memory list --workspace <ws_id> [--page N] [--category CAT]
 recuerd0 memory show --workspace <ws_id> <memory_id>
-recuerd0 memory create --workspace <ws_id> --title "Title" --content "Body" [--tags "a,b"] [--source "src"]
-recuerd0 memory update --workspace <ws_id> <memory_id> [--title "T"] [--content "C"] [--tags "a,b"]
+recuerd0 memory create --workspace <ws_id> --title "Title" --content "Body" [--tags "a,b"] [--source "src"] [--category CAT]
+recuerd0 memory update --workspace <ws_id> <memory_id> [--title "T"] [--content "C"] [--tags "a,b"] [--category CAT]
 recuerd0 memory delete --workspace <ws_id> <memory_id>
 ```
 
@@ -57,7 +57,7 @@ Content can be read from stdin with `--content -`.
 
 ```bash
 recuerd0 memory version create <memory_id> --workspace <ws_id> \
-  [--title "T"] [--content "C"] [--tags "a,b"] [--source "src"]
+  [--title "T"] [--content "C"] [--tags "a,b"] [--source "src"] [--category CAT]
 ```
 
 Creates a new version of a memory. Fields default to the parent version's values if omitted.
@@ -65,7 +65,7 @@ Creates a new version of a memory. Fields default to the parent version's values
 ### Search
 
 ```bash
-recuerd0 search "<query>" [--workspace <ws_id>] [--page N]
+recuerd0 search "<query>" [--workspace <ws_id>] [--page N] [--category CAT]
 ```
 
 Supports FTS5 query operators:
@@ -80,6 +80,19 @@ Supports FTS5 query operators:
 | Column | `title:architecture` | Search only title field |
 | Column | `body:implementation` | Search only body field |
 | Group | `(meeting OR standup) AND notes` | Parentheses for precedence |
+
+### Categories
+
+Every memory carries a `category` — one of `decision`, `discovery`, `preference`, `general`. The `--category` flag is optional everywhere:
+
+- On `memory create`: server defaults to `general` when omitted.
+- On `memory version create`: server inherits from parent when omitted.
+- On `memory update`: category changes only when explicitly set.
+- On `memory list` and `search`: filters results to that category when set; returns all categories otherwise.
+
+Invalid values (anything outside the four canonical ones) fail client-side with exit code 2 before any API call.
+
+Use `decision` for choices the team made, `discovery` for findings/bug root-causes, `preference` for style/workflow preferences, `general` for everything else.
 
 ### Accounts
 

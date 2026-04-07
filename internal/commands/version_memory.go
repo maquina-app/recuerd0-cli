@@ -23,6 +23,7 @@ var (
 	memoryVersionCreateContent   string
 	memoryVersionCreateSource    string
 	memoryVersionCreateTags      string
+	memoryVersionCreateCategory  string
 )
 
 var memoryVersionCreateCmd = &cobra.Command{
@@ -37,6 +38,11 @@ var memoryVersionCreateCmd = &cobra.Command{
 		ws, err := resolveWorkspace(memoryVersionCreateWorkspace)
 		if err != nil {
 			exitWithError(err)
+			return
+		}
+
+		if !IsValidCategory(memoryVersionCreateCategory) {
+			exitWithError(errors.NewInvalidArgsError(invalidCategoryMsg))
 			return
 		}
 
@@ -71,6 +77,9 @@ var memoryVersionCreateCmd = &cobra.Command{
 			}
 			version["tags"] = trimmed
 		}
+		if memoryVersionCreateCategory != "" {
+			version["category"] = memoryVersionCreateCategory
+		}
 
 		body := map[string]interface{}{"version": version}
 
@@ -98,5 +107,6 @@ func init() {
 	memoryVersionCreateCmd.Flags().StringVar(&memoryVersionCreateContent, "content", "", "version content (use - for stdin)")
 	memoryVersionCreateCmd.Flags().StringVar(&memoryVersionCreateSource, "source", "", "source")
 	memoryVersionCreateCmd.Flags().StringVar(&memoryVersionCreateTags, "tags", "", "comma-separated tags")
+	memoryVersionCreateCmd.Flags().StringVar(&memoryVersionCreateCategory, "category", "", "version category (decision, discovery, preference, general)")
 	memoryVersionCmd.AddCommand(memoryVersionCreateCmd)
 }

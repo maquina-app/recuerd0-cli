@@ -13,6 +13,7 @@ import (
 var (
 	searchWorkspace string
 	searchPage      string
+	searchCategory  string
 )
 
 var searchCmd = &cobra.Command{
@@ -31,6 +32,11 @@ var searchCmd = &cobra.Command{
 			return
 		}
 
+		if !IsValidCategory(searchCategory) {
+			exitWithError(errors.NewInvalidArgsError("--category must be one of: decision, discovery, preference, general"))
+			return
+		}
+
 		params := url.Values{}
 		params.Set("q", query)
 		if searchWorkspace != "" {
@@ -38,6 +44,9 @@ var searchCmd = &cobra.Command{
 		}
 		if searchPage != "" {
 			params.Set("page", searchPage)
+		}
+		if searchCategory != "" {
+			params.Set("category", searchCategory)
 		}
 		path := "/search?" + params.Encode()
 
@@ -63,5 +72,6 @@ var searchCmd = &cobra.Command{
 func init() {
 	searchCmd.Flags().StringVar(&searchWorkspace, "workspace", "", "limit search to workspace")
 	searchCmd.Flags().StringVar(&searchPage, "page", "", "page number")
+	searchCmd.Flags().StringVar(&searchCategory, "category", "", "filter by category (decision, discovery, preference, general)")
 	rootCmd.AddCommand(searchCmd)
 }

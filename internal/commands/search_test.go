@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/maquina/recuerd0-cli/internal/client"
+	"github.com/maquina/recuerd0-cli/internal/errors"
 )
 
 func TestSearch(t *testing.T) {
@@ -86,6 +88,46 @@ func TestSearch_WithPage(t *testing.T) {
 	}
 	if mock.GetCalls[0].Path != "/search?page=3&q=query" {
 		t.Errorf("unexpected path: %s", mock.GetCalls[0].Path)
+	}
+}
+
+func TestSearchWithCategoryFilter(t *testing.T) {
+	mock := NewMockClient()
+	mock.GetResponse = &client.APIResponse{StatusCode: 200, Data: []interface{}{}}
+
+	result := SetTestMode(mock)
+	SetTestConfig("tok_test", "https://api.example.com")
+	defer ResetTestMode()
+
+	searchCategory = "decision"
+	defer func() { searchCategory = "" }()
+
+	RunTestCommand(func() { searchCmd.Run(searchCmd, []string{"test"}) })
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected 0, got %d", result.ExitCode)
+	}
+	if !strings.Contains(mock.GetCalls[0].Path, "category=decision") {
+		t.Errorf("expected category=decision, got: %s", mock.GetCalls[0].Path)
+	}
+}
+
+func TestSearchInvalidCategory(t *testing.T) {
+	mock := NewMockClient()
+	result := SetTestMode(mock)
+	SetTestConfig("tok_test", "https://api.example.com")
+	defer ResetTestMode()
+
+	searchCategory = "bogus"
+	defer func() { searchCategory = "" }()
+
+	RunTestCommand(func() { searchCmd.Run(searchCmd, []string{"test"}) })
+
+	if result.ExitCode != errors.ExitInvalidArgs {
+		t.Errorf("expected exit %d, got %d", errors.ExitInvalidArgs, result.ExitCode)
+	}
+	if len(mock.GetCalls) != 0 {
+		t.Errorf("expected no Get calls, got %d", len(mock.GetCalls))
 	}
 }
 

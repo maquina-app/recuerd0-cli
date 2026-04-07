@@ -24,6 +24,7 @@ Server: local Rails server with server-side fixes for version create and workspa
 | 12 | Update latest version | `memory update` on version | PASS | PASS | PASS |
 | 13 | Search memories | `search` | PASS (wrong count) | PASS | PASS |
 | 14 | Workspace context | `workspace context` | NEW | NEW | NEW |
+| 15 | Memory categories | `memory create/list + search --category` | — | — | NEW |
 
 All 13 scenarios pass with no remaining issues. Scenario 14 added in the context endpoint feature work — see § 14 below; pending first manual run.
 
@@ -216,6 +217,20 @@ recuerd0 workspace context <id> --max-body-chars 200 --account local --pretty
 
 ---
 
+### 15. Memory categories
+
+```bash
+recuerd0 memory create --workspace 1 --title "Test" --content "..." --category decision --account local --pretty
+recuerd0 memory list --workspace 1 --category decision --account local --pretty
+recuerd0 search "test" --category decision --account local --pretty
+```
+
+**Expected:** Memory is created with `category: "decision"` in the response. List and search both filter results to only memories categorized as `decision`. Invalid category values (anything other than `decision`, `discovery`, `preference`, `general`) exit client-side with code 2 before any API call.
+
+**Result:** PENDING — first manual run after server-side category support ships.
+
+---
+
 ## Fixes Applied
 
 ### CLI Fixes
@@ -259,10 +274,10 @@ Updated to handle the API's nested error format:
 | POST | `/workspaces/:id/archive` | `workspace archive <id>` |
 | DELETE | `/workspaces/:id/archive` | `workspace unarchive <id>` |
 | GET | `/workspaces/:id/context` | `workspace context <id>` |
-| GET | `/workspaces/:ws/memories` | `memory list --workspace <ws>` |
+| GET | `/workspaces/:ws/memories` | `memory list --workspace <ws> [--category CAT]` |
 | GET | `/workspaces/:ws/memories/:id` | `memory show --workspace <ws> <id>` |
 | POST | `/workspaces/:ws/memories` | `memory create --workspace <ws>` |
 | PATCH | `/workspaces/:ws/memories/:id` | `memory update --workspace <ws> <id>` |
 | DELETE | `/workspaces/:ws/memories/:id` | `memory delete --workspace <ws> <id>` |
 | POST | `/workspaces/:ws/memories/:id/versions` | `memory version create <id> --workspace <ws>` |
-| GET | `/search?q=<query>` | `search "<query>"` |
+| GET | `/search?q=<query>` | `search "<query>" [--category CAT]` |

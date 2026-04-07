@@ -80,19 +80,23 @@ recuerd0 workspace context <id> [--limit N] [--no-body] [--max-body-chars N]
   # Wake-up payload for AI agents: workspace metadata + your pinned
   # memories filtered to this workspace, in one call.
 
-recuerd0 memory list [--workspace ID] [--page N]
+recuerd0 memory list [--workspace ID] [--page N] [--category CAT]
 recuerd0 memory show [--workspace ID] <memory_id>
-recuerd0 memory create [--workspace ID] [--title T] [--content C | --content -] [--source S] [--tags t1,t2]
-recuerd0 memory update [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T]
+recuerd0 memory create [--workspace ID] [--title T] [--content C | --content -] [--source S] [--tags t1,t2] [--category CAT]
+recuerd0 memory update [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T] [--category CAT]
 recuerd0 memory delete [--workspace ID] <memory_id>
 
-recuerd0 memory version create [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T]
+recuerd0 memory version create [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T] [--category CAT]
 
-recuerd0 search <query> [--workspace ID] [--page N]
+recuerd0 search <query> [--workspace ID] [--page N] [--category CAT]
   # Supports FTS5 operators: AND, OR, NOT, "phrases", title:field, body:field
 
 recuerd0 version
 ```
+
+### Categories
+
+Memories can be tagged with one of four categories: `decision`, `discovery`, `preference`, `general`. The `--category` flag is optional on create, update, version create, list, and search — the server defaults new memories to `general` when omitted, and list/search return all categories when omitted.
 
 ## Output
 

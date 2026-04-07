@@ -279,6 +279,132 @@ func TestMemoryDelete(t *testing.T) {
 	}
 }
 
+func TestMemoryCreateWithCategory(t *testing.T) {
+	mock := NewMockClient()
+	mock.PostResponse = &client.APIResponse{StatusCode: 201, Data: map[string]interface{}{"id": "1"}}
+
+	result := SetTestMode(mock)
+	SetTestConfigFull("tok_test", "https://api.example.com", "5")
+	defer ResetTestMode()
+
+	memoryCreateTitle = "T"
+	memoryCreateContent = "C"
+	memoryCreateCategory = "decision"
+	defer func() {
+		memoryCreateTitle = ""
+		memoryCreateContent = ""
+		memoryCreateCategory = ""
+	}()
+
+	RunTestCommand(func() { memoryCreateCmd.Run(memoryCreateCmd, []string{}) })
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected 0, got %d", result.ExitCode)
+	}
+	body := mock.PostCalls[0].Body.(map[string]interface{})
+	memory := body["memory"].(map[string]interface{})
+	if memory["category"] != "decision" {
+		t.Errorf("expected category decision, got %v", memory["category"])
+	}
+}
+
+func TestMemoryCreateWithoutCategory(t *testing.T) {
+	mock := NewMockClient()
+	mock.PostResponse = &client.APIResponse{StatusCode: 201, Data: map[string]interface{}{"id": "1"}}
+
+	result := SetTestMode(mock)
+	SetTestConfigFull("tok_test", "https://api.example.com", "5")
+	defer ResetTestMode()
+
+	memoryCreateTitle = "T"
+	memoryCreateContent = "C"
+	memoryCreateCategory = ""
+	defer func() {
+		memoryCreateTitle = ""
+		memoryCreateContent = ""
+	}()
+
+	RunTestCommand(func() { memoryCreateCmd.Run(memoryCreateCmd, []string{}) })
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected 0, got %d", result.ExitCode)
+	}
+	body := mock.PostCalls[0].Body.(map[string]interface{})
+	memory := body["memory"].(map[string]interface{})
+	if _, has := memory["category"]; has {
+		t.Errorf("expected category to be omitted, got %v", memory["category"])
+	}
+}
+
+func TestMemoryCreateInvalidCategory(t *testing.T) {
+	mock := NewMockClient()
+	result := SetTestMode(mock)
+	SetTestConfigFull("tok_test", "https://api.example.com", "5")
+	defer ResetTestMode()
+
+	memoryCreateTitle = "T"
+	memoryCreateContent = "C"
+	memoryCreateCategory = "nonsense"
+	defer func() {
+		memoryCreateTitle = ""
+		memoryCreateContent = ""
+		memoryCreateCategory = ""
+	}()
+
+	RunTestCommand(func() { memoryCreateCmd.Run(memoryCreateCmd, []string{}) })
+
+	if result.ExitCode != errors.ExitInvalidArgs {
+		t.Errorf("expected exit %d, got %d", errors.ExitInvalidArgs, result.ExitCode)
+	}
+	if len(mock.PostCalls) != 0 {
+		t.Errorf("expected no Post calls, got %d", len(mock.PostCalls))
+	}
+}
+
+func TestMemoryUpdateWithCategory(t *testing.T) {
+	mock := NewMockClient()
+	mock.PatchResponse = &client.APIResponse{StatusCode: 200, Data: map[string]interface{}{"id": "42"}}
+
+	result := SetTestMode(mock)
+	SetTestConfigFull("tok_test", "https://api.example.com", "5")
+	defer ResetTestMode()
+
+	memoryUpdateCategory = "preference"
+	defer func() { memoryUpdateCategory = "" }()
+
+	RunTestCommand(func() { memoryUpdateCmd.Run(memoryUpdateCmd, []string{"42"}) })
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected 0, got %d", result.ExitCode)
+	}
+	body := mock.PatchCalls[0].Body.(map[string]interface{})
+	memory := body["memory"].(map[string]interface{})
+	if memory["category"] != "preference" {
+		t.Errorf("expected preference, got %v", memory["category"])
+	}
+}
+
+func TestMemoryListWithCategoryFilter(t *testing.T) {
+	mock := NewMockClient()
+	mock.GetResponse = &client.APIResponse{StatusCode: 200, Data: []interface{}{}}
+
+	result := SetTestMode(mock)
+	SetTestConfigFull("tok_test", "https://api.example.com", "5")
+	defer ResetTestMode()
+
+	memoryListCategory = "decision"
+	defer func() { memoryListCategory = "" }()
+
+	RunTestCommand(func() { memoryListCmd.Run(memoryListCmd, []string{}) })
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected 0, got %d", result.ExitCode)
+	}
+	if !strings.Contains(mock.GetCalls[0].Path, "category=decision") {
+		t.Errorf("expected category=decision in path, got: %s", mock.GetCalls[0].Path)
+	}
+}
+
 func TestParseTags(t *testing.T) {
 	tests := []struct {
 		input    string

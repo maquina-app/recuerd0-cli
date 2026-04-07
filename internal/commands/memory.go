@@ -29,7 +29,10 @@ func resolveWorkspace(flagVal string) (string, error) {
 var (
 	memoryListWorkspace string
 	memoryListPage      string
+	memoryListCategory  string
 )
+
+const invalidCategoryMsg = "--category must be one of: decision, discovery, preference, general"
 
 var memoryListCmd = &cobra.Command{
 	Use:   "list",
@@ -45,9 +48,21 @@ var memoryListCmd = &cobra.Command{
 			return
 		}
 
+		if !IsValidCategory(memoryListCategory) {
+			exitWithError(errors.NewInvalidArgsError(invalidCategoryMsg))
+			return
+		}
+
 		path := fmt.Sprintf("/workspaces/%s/memories", ws)
+		params := []string{}
 		if memoryListPage != "" {
-			path += "?page=" + memoryListPage
+			params = append(params, "page="+memoryListPage)
+		}
+		if memoryListCategory != "" {
+			params = append(params, "category="+memoryListCategory)
+		}
+		if len(params) > 0 {
+			path += "?" + strings.Join(params, "&")
 		}
 
 		apiClient := getClient()
@@ -112,6 +127,7 @@ var (
 	memoryCreateContent   string
 	memoryCreateSource    string
 	memoryCreateTags      string
+	memoryCreateCategory  string
 )
 
 var memoryCreateCmd = &cobra.Command{
@@ -125,6 +141,11 @@ var memoryCreateCmd = &cobra.Command{
 		ws, err := resolveWorkspace(memoryCreateWorkspace)
 		if err != nil {
 			exitWithError(err)
+			return
+		}
+
+		if !IsValidCategory(memoryCreateCategory) {
+			exitWithError(errors.NewInvalidArgsError(invalidCategoryMsg))
 			return
 		}
 
@@ -150,6 +171,9 @@ var memoryCreateCmd = &cobra.Command{
 		}
 		if memoryCreateTags != "" {
 			memory["tags"] = parseTags(memoryCreateTags)
+		}
+		if memoryCreateCategory != "" {
+			memory["category"] = memoryCreateCategory
 		}
 
 		body := map[string]interface{}{"memory": memory}
@@ -177,6 +201,7 @@ var (
 	memoryUpdateContent   string
 	memoryUpdateSource    string
 	memoryUpdateTags      string
+	memoryUpdateCategory  string
 )
 
 var memoryUpdateCmd = &cobra.Command{
@@ -191,6 +216,11 @@ var memoryUpdateCmd = &cobra.Command{
 		ws, err := resolveWorkspace(memoryUpdateWorkspace)
 		if err != nil {
 			exitWithError(err)
+			return
+		}
+
+		if !IsValidCategory(memoryUpdateCategory) {
+			exitWithError(errors.NewInvalidArgsError(invalidCategoryMsg))
 			return
 		}
 
@@ -216,6 +246,9 @@ var memoryUpdateCmd = &cobra.Command{
 		}
 		if memoryUpdateTags != "" {
 			memory["tags"] = parseTags(memoryUpdateTags)
+		}
+		if memoryUpdateCategory != "" {
+			memory["category"] = memoryUpdateCategory
 		}
 
 		if len(memory) == 0 {
@@ -299,6 +332,7 @@ func init() {
 
 	memoryListCmd.Flags().StringVar(&memoryListWorkspace, "workspace", "", "workspace ID")
 	memoryListCmd.Flags().StringVar(&memoryListPage, "page", "", "page number")
+	memoryListCmd.Flags().StringVar(&memoryListCategory, "category", "", "filter by category (decision, discovery, preference, general)")
 	memoryCmd.AddCommand(memoryListCmd)
 
 	memoryShowCmd.Flags().StringVar(&memoryShowWorkspace, "workspace", "", "workspace ID")
@@ -309,6 +343,7 @@ func init() {
 	memoryCreateCmd.Flags().StringVar(&memoryCreateContent, "content", "", "memory content (use - for stdin)")
 	memoryCreateCmd.Flags().StringVar(&memoryCreateSource, "source", "", "source of the memory")
 	memoryCreateCmd.Flags().StringVar(&memoryCreateTags, "tags", "", "comma-separated tags")
+	memoryCreateCmd.Flags().StringVar(&memoryCreateCategory, "category", "", "memory category (decision, discovery, preference, general)")
 	memoryCmd.AddCommand(memoryCreateCmd)
 
 	memoryUpdateCmd.Flags().StringVar(&memoryUpdateWorkspace, "workspace", "", "workspace ID")
@@ -316,6 +351,7 @@ func init() {
 	memoryUpdateCmd.Flags().StringVar(&memoryUpdateContent, "content", "", "memory content (use - for stdin)")
 	memoryUpdateCmd.Flags().StringVar(&memoryUpdateSource, "source", "", "source of the memory")
 	memoryUpdateCmd.Flags().StringVar(&memoryUpdateTags, "tags", "", "comma-separated tags")
+	memoryUpdateCmd.Flags().StringVar(&memoryUpdateCategory, "category", "", "memory category (decision, discovery, preference, general)")
 	memoryCmd.AddCommand(memoryUpdateCmd)
 
 	memoryDeleteCmd.Flags().StringVar(&memoryDeleteWorkspace, "workspace", "", "workspace ID")
