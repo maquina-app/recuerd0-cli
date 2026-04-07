@@ -49,9 +49,16 @@ recuerd0 memory show --workspace <ws_id> <memory_id>
 recuerd0 memory create --workspace <ws_id> --title "Title" --content "Body" [--tags "a,b"] [--source "src"] [--category CAT]
 recuerd0 memory update --workspace <ws_id> <memory_id> [--title "T"] [--content "C"] [--tags "a,b"] [--category CAT]
 recuerd0 memory delete --workspace <ws_id> <memory_id>
+recuerd0 memory link list <memory_id> [--workspace <ws_id>]
+recuerd0 memory link add <memory_id> --to <other_memory_id> [--workspace <ws_id>]
+recuerd0 memory link remove <memory_id> --to <other_memory_id> [--workspace <ws_id>]
 ```
 
 Content can be read from stdin with `--content -`.
+
+### Memory Links
+
+Memory links (tunnels) connect two memories that cover related topics, including across workspaces within the same account. Links are undirected, unlabeled, and same-account-only — cross-account or self-links are rejected with `422`. The CLI hides the join row id: `memory link remove` takes the *other* memory's id via `--to`. Memory and pinned-memory responses include a `links_count` field.
 
 ### Memory Versions
 
@@ -131,6 +138,9 @@ workspace: 22
 | PATCH | `/workspaces/:ws/memories/:id` | `memory update` |
 | DELETE | `/workspaces/:ws/memories/:id` | `memory delete` |
 | POST | `/workspaces/:ws/memories/:id/versions` | `memory version create` |
+| GET | `/workspaces/:ws/memories/:id/links` | `memory link list` |
+| POST | `/workspaces/:ws/memories/:id/links` | `memory link add` |
+| DELETE | `/workspaces/:ws/memories/:id/links/:other_id` | `memory link remove` |
 | GET | `/search?q=<query>` | `search` |
 
 ## Instructions

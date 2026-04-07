@@ -25,6 +25,7 @@ Server: local Rails server with server-side fixes for version create and workspa
 | 13 | Search memories | `search` | PASS (wrong count) | PASS | PASS |
 | 14 | Workspace context | `workspace context` | NEW | NEW | NEW |
 | 15 | Memory categories | `memory create/list + search --category` | — | — | NEW |
+| 16 | Memory links | `memory link add/list/remove` | — | — | NEW |
 
 All 13 scenarios pass with no remaining issues. Scenario 14 added in the context endpoint feature work — see § 14 below; pending first manual run.
 
@@ -231,6 +232,20 @@ recuerd0 search "test" --category decision --account local --pretty
 
 ---
 
+### 16. Memory links
+
+```bash
+recuerd0 memory link add 1 --to 5 --account local --pretty
+recuerd0 memory link list 1 --account local --pretty
+recuerd0 memory link remove 1 --to 5 --account local --pretty
+```
+
+**Expected:** `add` creates a link between memory 1 and memory 5 (which may be in a different workspace within the same account). `list` returns the linked memories for memory 1, including memory 5. `remove` deletes the link; the URL `:id` segment carries the *other* memory's id (5), not a join row id. Cross-account links and self-links are rejected with `422`. Memory and pinned-memory responses include a `links_count` field. Client-side validation rejects non-positive `--to`, missing `--to`, non-integer memory ids, and self-links with exit code 2 before any API call.
+
+**Result:** PENDING — first manual run after server-side memory links ship.
+
+---
+
 ## Fixes Applied
 
 ### CLI Fixes
@@ -280,4 +295,7 @@ Updated to handle the API's nested error format:
 | PATCH | `/workspaces/:ws/memories/:id` | `memory update --workspace <ws> <id>` |
 | DELETE | `/workspaces/:ws/memories/:id` | `memory delete --workspace <ws> <id>` |
 | POST | `/workspaces/:ws/memories/:id/versions` | `memory version create <id> --workspace <ws>` |
+| GET | `/workspaces/:ws/memories/:id/links` | `memory link list <id> --workspace <ws>` |
+| POST | `/workspaces/:ws/memories/:id/links` | `memory link add <id> --to <other> --workspace <ws>` |
+| DELETE | `/workspaces/:ws/memories/:id/links/:other_id` | `memory link remove <id> --to <other> --workspace <ws>` |
 | GET | `/search?q=<query>` | `search "<query>" [--category CAT]` |

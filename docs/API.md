@@ -446,6 +446,45 @@ DELETE /workspaces/:workspace_id/memories/:id.json
 
 ---
 
+## Memory Links
+
+Memory links (also called *tunnels*) connect two memories that cover related topics across workspace boundaries. Links are undirected, unlabeled, and only allowed between memories owned by the same account; cross-account links return `422 Unprocessable Entity`. Self-links (linking a memory to itself) also return `422`. Memory and pinned-memory responses now include a `links_count` field reflecting how many tunnels a given memory participates in.
+
+### List Links
+
+Lists memories linked to the given memory. Accepts `read_only` or `full_access` tokens.
+
+```
+GET /workspaces/:workspace_id/memories/:memory_id/links.json
+```
+
+### Create Link
+
+Creates a link between `:memory_id` and another memory. Requires `full_access`. The other memory may live in a different workspace, but must belong to the same account.
+
+```
+POST /workspaces/:workspace_id/memories/:memory_id/links.json
+```
+
+**Body**
+```json
+{ "to_memory_id": 99 }
+```
+
+Returns `422` if `to_memory_id` is missing, equals `:memory_id`, or points to a memory owned by a different account.
+
+### Delete Link
+
+Removes the link between `:memory_id` and the memory whose id appears as `:id` in the URL. Note that `:id` is the **other memory's id**, not a join row id. Requires `full_access`.
+
+```
+DELETE /workspaces/:workspace_id/memories/:memory_id/links/:id.json
+```
+
+**Response** `204 No Content`
+
+---
+
 ## Memory Versions
 
 ### Create Version
