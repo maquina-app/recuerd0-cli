@@ -10,6 +10,9 @@ type MockCall struct {
 
 // MockClient implements client.API for testing.
 type MockClient struct {
+	// GetResponses, when non-empty, is consumed in order on each Get call.
+	// Falls back to GetResponse once exhausted.
+	GetResponses   []*client.APIResponse
 	GetResponse    *client.APIResponse
 	PostResponse   *client.APIResponse
 	PatchResponse  *client.APIResponse
@@ -40,6 +43,11 @@ func (m *MockClient) Get(path string) (*client.APIResponse, error) {
 	m.GetCalls = append(m.GetCalls, MockCall{Path: path})
 	if m.GetError != nil {
 		return nil, m.GetError
+	}
+	if len(m.GetResponses) > 0 {
+		next := m.GetResponses[0]
+		m.GetResponses = m.GetResponses[1:]
+		return next, nil
 	}
 	return m.GetResponse, nil
 }

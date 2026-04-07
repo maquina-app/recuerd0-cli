@@ -86,6 +86,15 @@ recuerd0 memory create [--workspace ID] [--title T] [--content C | --content -] 
 recuerd0 memory update [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T] [--category CAT]
 recuerd0 memory delete [--workspace ID] <memory_id>
 
+recuerd0 memory read head <memory_id> [--workspace ID] [--lines N]
+  # First N lines of a memory (default 20).
+recuerd0 memory read tail <memory_id> [--workspace ID] [--lines N]
+  # Last N lines of a memory (default 20).
+recuerd0 memory read lines <memory_id> --start S --end E [--workspace ID]
+  # Inclusive 1-based line window of a memory.
+recuerd0 memory read grep <memory_id> <pattern> [--workspace ID] [--context N] [--before N] [--after N]
+  # Grep memory content; returns matching lines with optional context (0-10).
+
 recuerd0 memory link list <memory_id> [--workspace ID]
 recuerd0 memory link add <memory_id> --to <other_id> [--workspace ID]
 recuerd0 memory link remove <memory_id> --to <other_id> [--workspace ID]

@@ -49,12 +49,18 @@ recuerd0 memory show --workspace <ws_id> <memory_id>
 recuerd0 memory create --workspace <ws_id> --title "Title" --content "Body" [--tags "a,b"] [--source "src"] [--category CAT]
 recuerd0 memory update --workspace <ws_id> <memory_id> [--title "T"] [--content "C"] [--tags "a,b"] [--category CAT]
 recuerd0 memory delete --workspace <ws_id> <memory_id>
+recuerd0 memory read head <memory_id> [--workspace <ws_id>] [--lines N]           # First N lines (default 20)
+recuerd0 memory read tail <memory_id> [--workspace <ws_id>] [--lines N]           # Last N lines (default 20)
+recuerd0 memory read lines <memory_id> --start S --end E [--workspace <ws_id>]    # Inclusive 1-based window
+recuerd0 memory read grep <memory_id> <pattern> [--workspace <ws_id>] [--context N] [--before N] [--after N]  # Grep with optional context
 recuerd0 memory link list <memory_id> [--workspace <ws_id>]
 recuerd0 memory link add <memory_id> --to <other_memory_id> [--workspace <ws_id>]
 recuerd0 memory link remove <memory_id> --to <other_memory_id> [--workspace <ws_id>]
 ```
 
 Content can be read from stdin with `--content -`.
+
+For large memories, prefer `memory read` over `memory show` so you only pull the slice you need. The typical flow is grep first to locate relevant lines, then fetch a window with `memory read lines` around each match — the grep response's breadcrumbs already include the suggested `memory read lines` follow-ups for the first five matches.
 
 ### Memory Links
 
@@ -133,7 +139,7 @@ workspace: 22
 | DELETE | `/workspaces/:id/archive` | `workspace unarchive` |
 | GET | `/workspaces/:id/context` | `workspace context` |
 | GET | `/workspaces/:ws/memories` | `memory list` |
-| GET | `/workspaces/:ws/memories/:id` | `memory show` |
+| GET | `/workspaces/:ws/memories/:id` | `memory show`, `memory read head/tail/lines/grep` |
 | POST | `/workspaces/:ws/memories` | `memory create` |
 | PATCH | `/workspaces/:ws/memories/:id` | `memory update` |
 | DELETE | `/workspaces/:ws/memories/:id` | `memory delete` |
