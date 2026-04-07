@@ -23,8 +23,9 @@ Server: local Rails server with server-side fixes for version create and workspa
 | 11 | Create memory version | `memory version create` | PASS (content ignored) | PASS (content ignored) | PASS |
 | 12 | Update latest version | `memory update` on version | PASS | PASS | PASS |
 | 13 | Search memories | `search` | PASS (wrong count) | PASS | PASS |
+| 14 | Workspace context | `workspace context` | NEW | NEW | NEW |
 
-All 13 scenarios pass with no remaining issues.
+All 13 scenarios pass with no remaining issues. Scenario 14 added in the context endpoint feature work — see § 14 below; pending first manual run.
 
 ---
 
@@ -198,6 +199,23 @@ recuerd0 search "Rails" --account local --pretty
 
 ---
 
+### 14. Workspace context (wake-up payload)
+
+```bash
+recuerd0 workspace context <id> --account local --pretty
+recuerd0 workspace context <id> --limit 5 --account local --pretty
+recuerd0 workspace context <id> --no-body --account local --pretty
+recuerd0 workspace context <id> --max-body-chars 200 --account local --pretty
+```
+
+**Expected:** Returns workspace metadata (id, name, description, state, memories_count, updated_at, url) plus the current user's pinned memories filtered to this workspace, with stats (`total_memories`, `total_pinned`, `returned_pinned`) and a `generated_at` timestamp. Bodies are included by default and truncated to 500 chars; `--no-body` omits them; `--max-body-chars` controls truncation length (100–5000); `--limit` clamps the returned pinned memory count (1–50, default 10).
+
+**Result:** PENDING — first manual run after server-side endpoint ships.
+
+**Notes:** Endpoint is `GET /workspaces/:id/context`. Active and archived workspaces both return 200; deleted workspaces return 404. Workspaces from other accounts return 404 (isolation). Out-of-range `--limit` or `--max-body-chars` flags fail client-side with exit code 2 before any API call.
+
+---
+
 ## Fixes Applied
 
 ### CLI Fixes
@@ -240,6 +258,7 @@ Updated to handle the API's nested error format:
 | PATCH | `/workspaces/:id` | `workspace update <id>` |
 | POST | `/workspaces/:id/archive` | `workspace archive <id>` |
 | DELETE | `/workspaces/:id/archive` | `workspace unarchive <id>` |
+| GET | `/workspaces/:id/context` | `workspace context <id>` |
 | GET | `/workspaces/:ws/memories` | `memory list --workspace <ws>` |
 | GET | `/workspaces/:ws/memories/:id` | `memory show --workspace <ws> <id>` |
 | POST | `/workspaces/:ws/memories` | `memory create --workspace <ws>` |

@@ -38,6 +38,7 @@ recuerd0 workspace create --name "Name" [--description "Desc"]
 recuerd0 workspace update <id> --name "Name" [--description "Desc"]
 recuerd0 workspace archive <id>
 recuerd0 workspace unarchive <id>
+recuerd0 workspace context <id> [--limit N] [--no-body] [--max-body-chars N]
 ```
 
 ### Memories
@@ -110,6 +111,7 @@ workspace: 22
 | PATCH | `/workspaces/:id` | `workspace update` |
 | POST | `/workspaces/:id/archive` | `workspace archive` |
 | DELETE | `/workspaces/:id/archive` | `workspace unarchive` |
+| GET | `/workspaces/:id/context` | `workspace context` |
 | GET | `/workspaces/:ws/memories` | `memory list` |
 | GET | `/workspaces/:ws/memories/:id` | `memory show` |
 | POST | `/workspaces/:ws/memories` | `memory create` |

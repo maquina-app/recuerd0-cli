@@ -233,6 +233,61 @@ Returns the updated workspace object with `archived: false`.
 
 ---
 
+### Get Workspace Context
+
+Returns a wake-up payload for AI agents: workspace metadata plus the current user's pinned memories filtered to this workspace, in one call. Designed to be loaded into a system prompt as a compact snapshot. Requires `read_only` or `full_access` token. Active and archived workspaces both return 200; deleted workspaces return 404.
+
+```
+GET /workspaces/:id/context.json
+```
+
+**Query parameters**
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| limit | integer | `10` | Max pinned memories to include. Clamped to `1..50`. |
+| include_body | boolean | `true` | When `false`, omits the memory `body` field. |
+| max_body_chars | integer | `500` | When `include_body=true`, truncate each body to this many characters. Clamped to `100..5000`. |
+
+**Response** `200 OK`
+
+```json
+{
+  "workspace": {
+    "id": "1",
+    "name": "Rails Patterns",
+    "description": "Architecture, patterns, decisions",
+    "memories_count": 42,
+    "state": "active",
+    "updated_at": "2026-04-06T12:00:00Z",
+    "url": "https://recuerd0.ai/workspaces/1"
+  },
+  "pinned_memories": [
+    {
+      "id": "12",
+      "title": "FTS5 error handling",
+      "source": "manual",
+      "tags": ["fts5", "errors"],
+      "pinned_at": "2026-03-01T10:00:00Z",
+      "updated_at": "2026-03-15T08:00:00Z",
+      "url": "https://recuerd0.ai/workspaces/1/memories/12",
+      "body": "SQLite FTS5 syntax errors surface as ActiveRecord::StatementInvalid…",
+      "body_truncated": true
+    }
+  ],
+  "stats": {
+    "total_memories": 42,
+    "total_pinned": 5,
+    "returned_pinned": 5
+  },
+  "generated_at": "2026-04-07T04:55:00Z"
+}
+```
+
+The endpoint supports HTTP caching: `If-None-Match` and `If-Modified-Since` request headers return `304 Not Modified` when nothing has changed.
+
+---
+
 ## Memories
 
 ### List Memories
