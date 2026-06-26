@@ -1,0 +1,125 @@
+# goreleaser v2 — one config produces all the Recuerd0 CLI artifact types:
+#   1. cross-compiled binaries (darwin/linux/windows × amd64/arm64) in
+#      recuerd0-<os>-<arch> archives
+#   2. checksums.txt (sha256)
+#   3. a Homebrew cask pushed to the maquina-app/homebrew-tap repo
+#   4. .deb + .rpm packages via the built-in nfpm
+#
+# Releases are cut manually and locally from a Mac with `goreleaser release
+# --clean` (see README "Release"); there is no release CI workflow. The GitHub
+# Release is published to this same repo (maquina-app/recuerd0-cli).
+#
+# Darwin binaries are ad-hoc codesigned in a build post-hook (scripts/sign-darwin.sh)
+# so they run on Apple Silicon; this requires releasing from macOS.
+#
+# Validate locally with `goreleaser check`; dry-run with
+# `goreleaser release --snapshot --clean`.
+version: 2
+
+project_name: recuerd0
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: recuerd0
+    main: ./cmd/recuerd0
+    binary: recuerd0
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    hooks:
+      # Ad-hoc codesign the darwin binaries right after build (a no-op for other
+      # OSes) so the released macOS binaries run on Apple Silicon — arm64 SIGKILLs
+      # an unsigned Mach-O. Signing here (before archiving) means the tar.gz, the
+      # Homebrew cask binary, and the checksums all reflect the signed binary.
+      # Requires releasing from a Mac for `codesign`.
+      post:
+        - cmd: ./scripts/sign-darwin.sh "{{ .Path }}" "{{ .Os }}"
+          output: true
+
+archives:
+  - id: recuerd0
+    # recuerd0-<os>-<arch> asset naming: tar.gz for darwin/linux, zip for windows.
+    name_template: "recuerd0-{{ .Os }}-{{ .Arch }}"
+    formats: ["tar.gz"]
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
+    files:
+      - README.md
+      - LICENSE*
+      - scripts/install.sh
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  disable: true
+
+# Homebrew → a dedicated tap repo. goreleaser v2 ships casks (the deprecated
+# `brews` formula generator is gone); a cask is macOS-only, which fits — the CLI's
+# brew audience is macOS. `brew install maquina-app/tap/recuerd0` works once the
+# cask lands in maquina-app/homebrew-tap. The binary is ad-hoc signed at build time
+# (so it execs on Apple Silicon); the post-install hook also strips the quarantine
+# xattr.
+homebrew_casks:
+  - name: recuerd0
+    repository:
+      owner: maquina-app
+      name: homebrew-tap
+      # A cross-repo PAT (built-in GITHUB_TOKEN can't push to another repo).
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: "https://recuerd0.ai"
+    description: "CLI for preserving, versioning, and organizing knowledge from AI conversations"
+    binaries:
+      - recuerd0
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/recuerd0"]
+          end
+
+# .deb + .rpm via the built-in nfpm packager.
+nfpms:
+  - id: recuerd0
+    package_name: recuerd0
+    vendor: "Maquina"
+    homepage: "https://recuerd0.ai"
+    maintainer: "Mario Alberto Chávez Cárdenas <mario@maquina.app>"
+    description: "CLI for preserving, versioning, and organizing knowledge from AI conversations"
+    license: "MIT"
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/local/bin
+    contents:
+      - src: README.md
+        dst: /usr/share/doc/recuerd0/README.md
+
+# install.sh is uploaded as a Release asset so a stable
+# releases/latest/download/install.sh URL backs the curl one-liner.
+release:
+  draft: false
+  prerelease: auto
+  github:
+    owner: maquina-app
+    name: recuerd0-cli
+  extra_files:
+    - glob: ./scripts/install.sh
