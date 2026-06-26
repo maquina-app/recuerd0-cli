@@ -1,5 +1,7 @@
 # Binaries
 bin/
+# GoReleaser output
+dist/
 *.exe
 *.exe~
 *.dll

@@ -6,28 +6,36 @@ A product by [maquina](https://maquina.app).
 
 ## Installation
 
+**`curl | sh`** (macOS + Linux) — detects your OS/arch, downloads the matching
+`recuerd0-<os>-<arch>` release archive, verifies its sha256 against the release
+`checksums.txt`, and installs to `/usr/local/bin` (falling back to
+`$HOME/.local/bin` if that isn't writable):
+```bash
+curl -fsSL https://github.com/maquina-app/recuerd0-cli/releases/latest/download/install.sh | sh
+```
+
 **macOS (Homebrew)**
 ```bash
-brew install maquina-app/homebrew-tap/recuerd0-cli
+brew install maquina-app/tap/recuerd0
 ```
 
 **Debian/Ubuntu**
 ```bash
-# Download the .deb for your architecture (amd64 or arm64)
-curl -LO https://github.com/maquina-app/recuerd0-cli/releases/latest/download/recuerd0-cli_VERSION_amd64.deb
-sudo dpkg -i recuerd0-cli_VERSION_amd64.deb
+# Download the .deb for your architecture (amd64 or arm64) from the latest release
+curl -LO https://github.com/maquina-app/recuerd0-cli/releases/latest/download/recuerd0_VERSION_linux_amd64.deb
+sudo dpkg -i recuerd0_VERSION_linux_amd64.deb
 ```
 
 **Fedora/RHEL**
 ```bash
-# Download the .rpm for your architecture (x86_64 or aarch64)
-curl -LO https://github.com/maquina-app/recuerd0-cli/releases/latest/download/recuerd0-cli-VERSION-1.x86_64.rpm
-sudo rpm -i recuerd0-cli-VERSION-1.x86_64.rpm
+# Download the .rpm for your architecture (amd64 or arm64) from the latest release
+curl -LO https://github.com/maquina-app/recuerd0-cli/releases/latest/download/recuerd0_VERSION_linux_amd64.rpm
+sudo rpm -i recuerd0_VERSION_linux_amd64.rpm
 ```
 
 **Windows**
 
-Download `recuerd0-windows-amd64.exe` from [GitHub Releases](https://github.com/maquina-app/recuerd0-cli/releases), rename it to `recuerd0.exe`, and add it to your PATH.
+Download `recuerd0-windows-amd64.zip` (or `-arm64`) from [GitHub Releases](https://github.com/maquina-app/recuerd0-cli/releases), unzip it, and add `recuerd0.exe` to your PATH.
 
 **With Go**
 ```bash
@@ -164,11 +172,39 @@ See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for details.
 ## Development
 
 ```bash
-make build        # Build binary to bin/recuerd0
-make test-unit    # Run unit tests
-make tidy         # Tidy go modules
-make clean        # Remove build artifacts
+make build            # Build binary to bin/recuerd0
+make test-unit        # Run unit tests
+make tidy             # Tidy go modules
+make clean            # Remove build artifacts
+make release-check    # Validate .goreleaser.yaml
+make release-snapshot # Dry-run the full release pipeline (no publish) into dist/
 ```
+
+## Release
+
+Releases are cut **manually and locally from a Mac** with
+[GoReleaser](https://goreleaser.com) (`.goreleaser.yaml`) — there is no release
+CI workflow. A release produces the cross-compiled `recuerd0-<os>-<arch>`
+archives (darwin/linux/windows × amd64/arm64; `.tar.gz`, `.zip` for windows),
+`checksums.txt`, `install.sh`, the `.deb`/`.rpm` packages (nfpm), and the Homebrew
+cask (pushed to `maquina-app/homebrew-tap`). macOS binaries are ad-hoc codesigned
+during the build so they run on Apple Silicon, so the release must be cut from a Mac.
+
+Validate the config and dry-run before publishing:
+```bash
+goreleaser check                       # or: make release-check
+goreleaser release --snapshot --clean  # or: make release-snapshot (no publish)
+```
+
+Cut a real release:
+```bash
+brew install goreleaser   # one-time
+git tag v1.2.0 && git push origin v1.2.0
+HOMEBREW_TAP_TOKEN=<pat> GITHUB_TOKEN=<pat> goreleaser release --clean
+```
+
+- `GITHUB_TOKEN` needs `contents:write` on `maquina-app/recuerd0-cli` (publishes the Release here).
+- `HOMEBREW_TAP_TOKEN` needs `contents:write` on `maquina-app/homebrew-tap` (pushes the cask cross-repo).
 
 ## License
 
