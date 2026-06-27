@@ -5,13 +5,31 @@ Go CLI for the Recuerd0 platform. Module: `github.com/maquina/recuerd0-cli`
 ## Commands
 
 ```bash
-make build        # Build binary to bin/recuerd0 (version via ldflags)
-make test-unit    # Run all unit tests: go test -v ./internal/...
-make tidy         # go mod tidy
-make clean        # Remove bin/ and go clean
+make build            # Build binary to bin/recuerd0 (version via ldflags)
+make test-unit        # Run all unit tests: go test -v ./internal/...
+make tidy             # go mod tidy
+make clean            # Remove bin/ + dist/ and go clean
+make release-check    # goreleaser check (validate .goreleaser.yaml)
+make release-snapshot # goreleaser release --snapshot --clean (local dry run, no publish)
 ```
 
 Go binary: `/opt/homebrew/bin/go` (not in default PATH in some environments).
+
+## Build & Release
+
+Releases are cut **manually and locally from a Mac** with [GoReleaser](https://goreleaser.com) (`.goreleaser.yaml`) — there is **no release CI workflow** (only `.github/workflows/test.yml` for CI). The GitHub Release is published to this same repo (`maquina-app/recuerd0-cli`).
+
+One release produces: cross-compiled `recuerd0-<os>-<arch>` archives (darwin/linux/windows × amd64/arm64; `.tar.gz`, `.zip` for windows), `checksums.txt`, `.deb`/`.rpm` (nfpm), a Homebrew **cask** pushed to `maquina-app/homebrew-tap` (`Casks/recuerd0.rb` — `brew install maquina-app/tap/recuerd0`), and `scripts/install.sh` uploaded as a release asset (backs the `curl | sh` one-liner).
+
+- Version is stamped via ldflags `-X main.version={{ .Version }}` (read in `cmd/recuerd0/main.go`).
+- macOS binaries are ad-hoc codesigned in a build post-hook (`scripts/sign-darwin.sh`) so arm64 won't SIGKILL them — **release must be cut from a Mac**.
+
+Cutting a release:
+```bash
+git tag vX.Y.Z && git push origin vX.Y.Z
+HOMEBREW_TAP_TOKEN=$(gh auth token) GITHUB_TOKEN=$(gh auth token) goreleaser release --clean
+```
+`GITHUB_TOKEN` needs `contents:write` on `maquina-app/recuerd0-cli`; `HOMEBREW_TAP_TOKEN` needs `contents:write` on `maquina-app/homebrew-tap` (cross-repo). A `gh` token with `repo` scope covers both. Validate/dry-run first with `make release-check` / `make release-snapshot`.
 
 ## Architecture
 
