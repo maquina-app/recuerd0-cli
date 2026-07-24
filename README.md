@@ -109,11 +109,32 @@ recuerd0 memory link remove <memory_id> --to <other_id> [--workspace ID]
 
 recuerd0 memory version create [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T] [--category CAT]
 
+recuerd0 import propose <path> --workspace ID [--plan import.plan.yaml] [--ledger PATH] [--adapter obsidian_markdown|workspace_export] [--fresh]
+recuerd0 import commit <plan> [--yes] [--ledger PATH] [--dry-run]
+
 recuerd0 search <query> [--workspace ID] [--page N] [--category CAT]
   # Supports FTS5 operators: AND, OR, NOT, "phrases", title:field, body:field
 
 recuerd0 version
 ```
+
+### Bulk imports
+
+Import is propose → review → commit: `propose` writes a reviewable `import.plan.yaml` and never touches the server; `commit` executes the plan you approved.
+
+`import propose` scans an Obsidian/Markdown directory or a Recuerd0 workspace-export v1 JSON file. It writes the plan atomically, uses GET requests only for title-conflict detection, and never creates or changes a memory. Review the digest and YAML together, keep each manifest `action` aligned with all exception `resolution` values for that path, and confirm every `target_memory_id` before approving versions.
+
+```bash
+recuerd0 import propose ./vault --workspace 12 --pretty
+
+# Preview again after review. A preview is success-shaped JSON but exits 1.
+recuerd0 import commit import.plan.yaml --pretty
+
+# Execute exactly the reviewed plan, with an append-only resume ledger.
+recuerd0 import commit import.plan.yaml --yes --pretty
+```
+
+`--dry-run` always wins over `--yes`. The default ledger is `import.ledger.jsonl` beside the plan. Keep it: it supplies immutable chain identity and exact resume state after interruption. See [docs/IMPORT.md](docs/IMPORT.md) for plan rules, review guidance, exit behavior, and recovery details.
 
 ### Categories
 

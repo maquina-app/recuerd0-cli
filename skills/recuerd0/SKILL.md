@@ -75,6 +75,35 @@ recuerd0 memory version create <memory_id> --workspace <ws_id> \
 
 Creates a new version of a memory. Fields default to the parent version's values if omitted.
 
+### Imports
+
+Import is propose → review → commit: `propose` writes a reviewable `import.plan.yaml` and never touches the server; `commit` executes the plan you approved.
+
+```bash
+recuerd0 import propose <path> --workspace <ws_id> \
+  [--plan import.plan.yaml] [--ledger PATH] \
+  [--adapter obsidian_markdown|workspace_export] [--fresh]
+
+recuerd0 import commit <plan> [--yes] [--ledger PATH] [--dry-run]
+```
+
+Directories auto-detect as Markdown/Obsidian imports; valid export-v1 JSON files auto-detect as workspace exports. Propose performs GET-only conflict detection and atomically saves the plan. Commit without `--yes`, or with `--dry-run`, validates and returns the same digest with exit 1 and no writes. `--dry-run` wins over `--yes`.
+
+#### Import review protocol
+
+1. Run propose and relay `adapter`, all `counts`, `titles_from_h1_pct`, `links_proposed`, `tags_proposed`, structured `exceptions`, `thin`, any `hint`, and `warnings` verbatim.
+2. Review the YAML only. Keep every manifest `action` aligned with all exception `resolution` values for the same path.
+3. Confirm every `target_memory_id` before approving `version`; never attach one to `create`.
+4. Re-run commit without `--yes` to validate and show the human the final digest.
+5. Stop at the reviewed plan unless the human explicitly says go.
+6. After approved execution, report `ops` and `plan.complete`; also surface `aborted`, `links_failed`, or `links_skipped_unresolvable`.
+
+If present, relay this hint unchanged:
+
+> This plan looks thin — refine it by hand or hand it to your agent (see the recuerd0 skill's import protocol).
+
+The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerdo import commit`, and pass `--yes` only after the human has seen the digest and said go.
+
 ### Search
 
 ```bash

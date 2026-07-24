@@ -42,6 +42,27 @@ using FTS operators (AND, OR, NOT, prefix*, title:, body:).
 
 ## Workflows
 
+### Import an existing knowledge folder
+
+Import is propose → review → commit: `propose` writes a reviewable `import.plan.yaml` and never touches the server; `commit` executes the plan you approved.
+
+```bash
+# Scan Markdown/Obsidian notes and emit the review digest.
+recuerd0 import propose ./notes --workspace 47 --pretty
+
+# Review import.plan.yaml, then preview the same digest (exit 1, no writes).
+recuerd0 import commit import.plan.yaml --pretty
+
+# Run only after the human approves.
+recuerd0 import commit import.plan.yaml --yes --pretty
+```
+
+When helping with the review, keep each row's `action` aligned with every exception `resolution` for the same path, confirm each `target_memory_id`, and relay all counts and any hint verbatim. After execution, report `ops` and `plan.complete`.
+
+The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerdo import commit`, and pass `--yes` only after the human has seen the digest and said go.
+
+See [IMPORT.md](IMPORT.md) for adapter behavior, sticky re-propose rules, ledger recovery, and exit codes.
+
 ### Pre-session context loading
 
 Before starting work, search for relevant memories:

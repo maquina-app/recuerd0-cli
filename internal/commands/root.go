@@ -142,6 +142,21 @@ func printSuccess(data interface{}) {
 	resp.Print()
 }
 
+// printSuccessWithExitCode emits the normal success-shaped envelope while
+// preserving command-specific review/abort exit semantics.
+func printSuccessWithExitCode(data interface{}, exitCode int) {
+	resp := response.Success(data)
+	if testMode {
+		testResult.Response = resp
+		testResult.ExitCode = exitCode
+		panic(testExitSignal{})
+	}
+	resp.Print()
+	if exitCode != 0 {
+		os.Exit(exitCode)
+	}
+}
+
 // printSuccessWithLocation outputs a success response with location.
 func printSuccessWithLocation(data interface{}, location string) {
 	resp := response.SuccessWithLocation(data, location)
