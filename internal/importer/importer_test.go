@@ -343,7 +343,7 @@ func TestExportAppendResumeKeepsBaseAndIgnoresVersionIDs(t *testing.T) {
 	exportPath := filepath.Join(root, "export.json")
 	writeTestFile(t, exportPath, `{
   "format": "recuerd0.workspace_export",
-  "version": 1,
+  "format_version": 1,
   "workspace": {"id": 22},
   "memories": [{
     "root_id": 7,

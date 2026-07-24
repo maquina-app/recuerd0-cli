@@ -11,9 +11,8 @@ import (
 	"strings"
 )
 
-// scanWorkspaceExport accepts the server v1 object's documented identities
-// while normalizing the few envelope variants produced by JSON serializers.
-// Once the envelope is identified, roots and chains are validated strictly.
+// scanWorkspaceExport accepts only the server's workspace-export v1 envelope.
+// Roots and version chains are validated strictly after decoding the envelope.
 func scanWorkspaceExport(sourcePath string) (*scanResult, error) {
 	data, err := os.ReadFile(sourcePath)
 	if err != nil {
@@ -32,28 +31,21 @@ func scanWorkspaceExport(sourcePath string) (*scanResult, error) {
 		return nil, validationf("workspace_export source has trailing invalid JSON: %v", err)
 	}
 
-	version := firstInt(root, "export_version", "version", "schema_version")
+	version := firstInt(root, "format_version")
 	format, _ := root["format"].(string)
-	if version != 1 || (format != "" && format != "recuerd0.workspace_export" && format != "recuerd0-workspace-export" && format != "workspace_export") {
+	if format != "recuerd0.workspace_export" || version != 1 {
 		return nil, validationf("workspace_export must be export v1")
 	}
-	workspaceID := firstInt64(root, "source_workspace_id", "workspace_id")
-	if workspaceID == 0 {
-		if workspace, ok := root["workspace"].(map[string]interface{}); ok {
-			workspaceID = firstInt64(workspace, "id", "workspace_id")
-		}
+	workspace, ok := root["workspace"].(map[string]interface{})
+	if !ok {
+		return nil, validationf("workspace_export is missing a positive source workspace ID")
 	}
+	workspaceID := firstInt64(workspace, "id")
 	if workspaceID <= 0 {
 		return nil, validationf("workspace_export is missing a positive source workspace ID")
 	}
 
 	payload := root["memories"]
-	if payload == nil {
-		payload = root["payload"]
-		if wrapper, ok := payload.(map[string]interface{}); ok {
-			payload = wrapper["memories"]
-		}
-	}
 	items, ok := payload.([]interface{})
 	if !ok {
 		return nil, validationf("workspace_export memories must be an array")

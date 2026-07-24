@@ -117,7 +117,7 @@ func TestFreshExportRepeatedTuplesKeepFixedRootIdentityAndOrdinalVersions(t *tes
 	exportPath := filepath.Join(root, "export.json")
 	writeTestFile(t, exportPath, `{
   "format": "recuerd0.workspace_export",
-  "version": 1,
+  "format_version": 1,
   "workspace": {"id": 22},
   "memories": [{
     "root_id": 7,
@@ -267,7 +267,7 @@ func writeWorkspaceExportForTest(t *testing.T, path, latestBody string, versions
 	if versions == 1 {
 		writeTestFile(t, path, `{
   "format": "recuerd0.workspace_export",
-  "version": 1,
+  "format_version": 1,
   "workspace": {"id": 22},
   "memories": [{
     "root_id": 7,
@@ -280,7 +280,7 @@ func writeWorkspaceExportForTest(t *testing.T, path, latestBody string, versions
 	}
 	writeTestFile(t, path, `{
   "format": "recuerd0.workspace_export",
-  "version": 1,
+  "format_version": 1,
   "workspace": {"id": 22},
   "memories": [{
     "root_id": 7,
