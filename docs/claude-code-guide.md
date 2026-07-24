@@ -37,10 +37,31 @@ Tell Claude Code to use Recuerd0 as part of its workflow:
 
 ```markdown
 Before starting non-trivial work, search recuerd0 for relevant memories
-using FTS operators (AND, OR, NOT, prefix*, title:, body:).
+using FTS operators (AND, OR, NOT, title:, body:).
 ```
 
 ## Workflows
+
+### Import an existing knowledge folder
+
+Import is propose → review → commit: `propose` writes a reviewable `import.plan.yaml` and never touches the server; `commit` executes the plan you approved.
+
+```bash
+# Scan Markdown/Obsidian notes and emit the review digest.
+recuerd0 import propose ./notes --workspace 47 --pretty
+
+# Review import.plan.yaml, then preview the same digest (exit 1, no writes).
+recuerd0 import commit import.plan.yaml --pretty
+
+# Run only after the human approves.
+recuerd0 import commit import.plan.yaml --yes --pretty
+```
+
+When helping with the review, keep each row's `action` aligned with every exception `resolution` for the same path, confirm each `target_memory_id`, and relay all counts and any hint verbatim. After execution, report `ops` and `plan.complete`.
+
+The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerdo import commit`, and pass `--yes` only after the human has seen the digest and said go.
+
+See [IMPORT.md](IMPORT.md) for adapter behavior, sticky re-propose rules, ledger recovery, and exit codes.
 
 ### Pre-session context loading
 
@@ -132,7 +153,7 @@ make test-unit 2>&1 | recuerd0 memory create \
 
 ## Search Tips
 
-Search is backed by SQLite FTS5. Use operators for precise queries:
+Search is backed by SQLite FTS5. Use operators for precise queries: Raw FTS5 applies to the REST /search.json path only; the workspace UI and MCP search are phrase-safe — see docs/API.md → Search.
 
 ```bash
 # Prefix matching — auth, authentication, authorization
