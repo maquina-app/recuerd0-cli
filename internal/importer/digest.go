@@ -37,9 +37,8 @@ func PlanDigest(plan *Plan) Digest {
 		}
 		digest.LinksProposed = countLinkPairs(plan.Manifest)
 		digest.Thin = len(plan.Manifest) > 0 &&
-			digest.TitlesFromH1Pct < 50 &&
-			digest.LinksProposed == 0 &&
-			digest.TagsProposed == 0
+			(digest.TitlesFromH1Pct < 50 ||
+				(digest.TagsProposed == 0 && digest.LinksProposed == 0))
 		if digest.Thin {
 			digest.Hint = ThinHint
 		}

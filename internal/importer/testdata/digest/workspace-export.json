@@ -1,0 +1,21 @@
+{
+  "format": "recuerd0.workspace_export",
+  "version": 1,
+  "workspace": {
+    "id": 44
+  },
+  "memories": [
+    {
+      "root_id": 9,
+      "versions": [
+        {
+          "version": 1,
+          "title": "Exported memory",
+          "body": "Exported body",
+          "tags": [],
+          "category": "general"
+        }
+      ]
+    }
+  ]
+}

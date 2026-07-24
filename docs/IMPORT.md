@@ -49,6 +49,21 @@ Review each manifest row and its exceptions:
 
 Scanner-owned fields are title, category, tags, and links. Review-owned fields include action, resolution, target ID, and notes. If a scanner-owned field is edited, future re-proposes preserve the reviewed metadata and its original fingerprint, then add `row edited — rules changes not applied` once. `--fresh` is the explicit way to discard that sticky provenance.
 
+After editing any scanner-owned field (`title`, `category`, `tags`, or `links`), re-run `recuerd0 import propose` with the same source, workspace, plan, and ledger arguments. The reviewed edits are preserved while source and content hashes refresh. Only then preview with `recuerd0 import commit <plan>` and, after human approval, execute with `--yes`.
+
+`rules.tag_map` maps each raw folder/frontmatter contribution to zero or more contributions before normalization. A missing key keeps the original contribution, an empty list removes it, and multiple entries fan out:
+
+```yaml
+rules:
+  tag_map:
+    legacy: []
+    Team Notes:
+      - area
+      - Knowledge Base
+```
+
+The example removes `legacy` and turns `Team Notes` into the normalized tags `area` and `knowledge_base`.
+
 Propose assigns conservative defaults:
 
 - conflict, unparseable, title-too-long, and later body-identical duplicates: `skip`;
@@ -89,7 +104,7 @@ Keep the ledger with the plan. It fixes:
 
 On resume, commit uses the persisted base and expected version. It never replaces them with a newly observed server version. Concurrent advancement, ambiguous reconciliation, a 4xx pass-1 response, or read-back mismatch aborts with exit 2 and a truthful partial summary.
 
-After all memory/version rows, links run in a second pass. Link failures are non-fatal but appear in `links_failed` and keep `plan.complete` false. Missing ledger identities appear in `links_skipped_unresolvable`.
+After all memory/version rows, links run in a second pass. Link failures are non-fatal but appear in `links_failed` and keep `plan.complete` false. Missing ledger identities appear in `links_skipped_unresolvable`, but do not by themselves keep an otherwise finished plan from reporting `plan.complete: true`.
 
 A clean commit exits 0 and reports:
 

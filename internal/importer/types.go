@@ -45,10 +45,10 @@ type Plan struct {
 // Rules are deliberately stored in the plan so review-time changes can be
 // applied by a later propose without adding more command flags.
 type Rules struct {
-	DefaultCategory string            `yaml:"default_category" json:"default_category"`
-	Exclude         []string          `yaml:"exclude,omitempty" json:"exclude,omitempty"`
-	CategoryMap     map[string]string `yaml:"category_map,omitempty" json:"category_map,omitempty"`
-	TagMap          map[string]string `yaml:"tag_map,omitempty" json:"tag_map,omitempty"`
+	DefaultCategory string              `yaml:"default_category" json:"default_category"`
+	Exclude         []string            `yaml:"exclude,omitempty" json:"exclude,omitempty"`
+	CategoryMap     map[string]string   `yaml:"category_map,omitempty" json:"category_map,omitempty"`
+	TagMap          map[string][]string `yaml:"tag_map,omitempty" json:"tag_map,omitempty"`
 	ignore          []string
 }
 

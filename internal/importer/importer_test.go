@@ -213,9 +213,10 @@ func TestProposeDeterministicAndStickyEditedRow(t *testing.T) {
 		t.Fatal(err)
 	}
 	oldFingerprint := plan.Manifest[0].RowFingerprint
+	oldContentHash := plan.Manifest[0].ContentHash
 	plan.Manifest[0].Title = "Reviewed title"
 	plan.Manifest[0].Tags = []string{"manual"}
-	plan.Rules.TagMap = map[string]string{"notes": "changed"}
+	plan.Rules.TagMap = map[string][]string{"notes": {"changed"}}
 	if err := SavePlanAtomic(planPath, plan); err != nil {
 		t.Fatal(err)
 	}
@@ -230,8 +231,16 @@ func TestProposeDeterministicAndStickyEditedRow(t *testing.T) {
 	if row.RowFingerprint != oldFingerprint {
 		t.Fatal("edited row fingerprint must remain byte-for-byte unchanged")
 	}
+	wantContentHash := CanonicalTupleHash("Reviewed title", []string{"manual"}, "general", "# Original\n\nBody\n")
+	if row.ContentHash != wantContentHash || row.ContentHash == oldContentHash {
+		t.Fatalf("re-propose must refresh hashes for preserved scanner edits: got %s want %s", row.ContentHash, wantContentHash)
+	}
 	if countString(row.Notes, "row edited — rules changes not applied") != 1 {
 		t.Fatalf("edited-row note must appear exactly once: %#v", row.Notes)
+	}
+	after.Rules.TagMap = map[string][]string{"notes": {"changed-again"}}
+	if err := SavePlanAtomic(planPath, after); err != nil {
+		t.Fatal(err)
 	}
 	if _, _, err := Propose(api, options); err != nil {
 		t.Fatal(err)
@@ -484,6 +493,7 @@ func TestLedgerSupportsCategoryOnlyMarkdownRevision(t *testing.T) {
 
 func TestCanonicalImportWording(t *testing.T) {
 	const agentBoundary = "The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerdo import commit`, and pass `--yes` only after the human has seen the digest and said go."
+	const scannerReviewProtocol = "After editing any scanner-owned field (`title`, `category`, `tags`, or `links`), re-run"
 	if ThinHint != "This plan looks thin — refine it by hand or hand it to your agent (see the recuerd0 skill's import protocol)." {
 		t.Fatalf("thin hint changed: %q", ThinHint)
 	}
@@ -498,6 +508,11 @@ func TestCanonicalImportWording(t *testing.T) {
 		}
 		if !strings.Contains(string(data), agentBoundary) {
 			t.Fatalf("%s does not contain the canonical agent boundary", relative)
+		}
+		if strings.HasSuffix(relative, "IMPORT.md") || strings.HasSuffix(relative, "SKILL.md") {
+			if !strings.Contains(string(data), scannerReviewProtocol) {
+				t.Fatalf("%s does not contain the scanner-owned re-propose review protocol", relative)
+			}
 		}
 	}
 }

@@ -263,35 +263,37 @@ func frontmatterTags(value interface{}) []string {
 	}
 }
 
-func normalizeTags(contributions []string, tagMap map[string]string) []string {
+func normalizeTags(contributions []string, tagMap map[string][]string) []string {
 	seen := make(map[string]bool)
 	for _, contribution := range contributions {
-		mapped, exists := tagMap[contribution]
+		mappedValues, exists := tagMap[contribution]
 		if !exists {
-			mapped = contribution
+			mappedValues = []string{contribution}
 		}
-		mapped = strings.TrimSpace(mapped)
-		if mapped == "" {
-			continue
-		}
-		var builder strings.Builder
-		underscore := false
-		for _, r := range strings.ToLower(mapped) {
-			if unicode.IsSpace(r) || r == '-' {
-				if builder.Len() > 0 {
-					underscore = true
-				}
+		for _, mapped := range mappedValues {
+			mapped = strings.TrimSpace(mapped)
+			if mapped == "" {
 				continue
 			}
-			if underscore {
-				builder.WriteByte('_')
-				underscore = false
+			var builder strings.Builder
+			underscore := false
+			for _, r := range strings.ToLower(mapped) {
+				if unicode.IsSpace(r) || r == '-' {
+					if builder.Len() > 0 {
+						underscore = true
+					}
+					continue
+				}
+				if underscore {
+					builder.WriteByte('_')
+					underscore = false
+				}
+				builder.WriteRune(r)
 			}
-			builder.WriteRune(r)
-		}
-		tag := strings.Trim(builder.String(), "_")
-		if tag != "" {
-			seen[tag] = true
+			tag := strings.Trim(builder.String(), "_")
+			if tag != "" {
+				seen[tag] = true
+			}
 		}
 	}
 	result := make([]string, 0, len(seen))

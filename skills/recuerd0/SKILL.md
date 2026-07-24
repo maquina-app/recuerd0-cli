@@ -93,10 +93,11 @@ Directories auto-detect as Markdown/Obsidian imports; valid export-v1 JSON files
 
 1. Run propose and relay `adapter`, all `counts`, `titles_from_h1_pct`, `links_proposed`, `tags_proposed`, structured `exceptions`, `thin`, any `hint`, and `warnings` verbatim.
 2. Review the YAML only. Keep every manifest `action` aligned with all exception `resolution` values for the same path.
-3. Confirm every `target_memory_id` before approving `version`; never attach one to `create`.
-4. Re-run commit without `--yes` to validate and show the human the final digest.
-5. Stop at the reviewed plan unless the human explicitly says go.
-6. After approved execution, report `ops` and `plan.complete`; also surface `aborted`, `links_failed`, or `links_skipped_unresolvable`.
+3. After editing any scanner-owned field (`title`, `category`, `tags`, or `links`), re-run propose with the same source, workspace, plan, and ledger arguments. The edits are preserved and hashes refresh.
+4. Confirm every `target_memory_id` before approving `version`; never attach one to `create`.
+5. Re-run commit without `--yes` to validate and show the human the final digest.
+6. Stop at the reviewed plan unless the human explicitly says go.
+7. After approved execution, report `ops` and `plan.complete`; also surface `aborted`, `links_failed`, or `links_skipped_unresolvable`.
 
 If present, relay this hint unchanged:
 

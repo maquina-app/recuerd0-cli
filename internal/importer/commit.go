@@ -818,8 +818,7 @@ func (runner *commitRunner) refreshSummary() {
 	}
 	planSummary.Complete = planSummary.RowsRemaining == 0 &&
 		runner.summary.Aborted == nil &&
-		len(runner.summary.LinksFailed) == 0 &&
-		runner.summary.LinksSkippedUnresolvable == 0
+		len(runner.summary.LinksFailed) == 0
 	runner.summary.Rows = rows
 	runner.summary.Plan = planSummary
 	if runner.summary.LinksFailed == nil {
