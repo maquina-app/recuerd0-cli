@@ -542,9 +542,18 @@ POST /workspaces/:workspace_id/memories/:memory_id/versions.json
 
 ## Search
 
-### Search Memories
+recuerd0 intentionally has two search contracts:
 
-Full-text search across all memories in active workspaces. Supports FTS5 query operators for advanced search patterns. Requires `read_only` or `full_access` token.
+- [REST `GET /search.json`](#rest-get-searchjson-raw-fts5) exposes raw FTS5 syntax
+  for API clients.
+- [MCP and workspace search](#mcp-and-workspace-search-safe-phrases-and-exact-tags)
+  uses safe phrase matching plus exact tags for agents and the UI.
+
+### REST: `GET /search.json` (raw FTS5)
+
+Full-text search across all memories in active workspaces. This endpoint passes the
+query through as raw FTS5 syntax, requires at least three characters, and does not
+union tag matches. It requires a `read_only` or `full_access` token.
 
 ```
 GET /search.json?q=<query>
@@ -558,6 +567,10 @@ GET /search.json?q=<query>
 | page | integer | No | Page number (default: 1) |
 | workspace_id | integer | No | Filter results to a specific workspace |
 | category | string | No | Filter results by category (`decision`, `discovery`, `preference`, `general`) |
+| mode | string | No | Response mode: `snippet` (default) or `grep` |
+| context | integer | No | Lines of context around each match, like `grep -C` (0-10, default: 0). Only used with `mode=grep` |
+| before | integer | No | Lines before each match, like `grep -B` (0-10). Overrides `context` for before. Only used with `mode=grep` |
+| after | integer | No | Lines after each match, like `grep -A` (0-10). Overrides `context` for after. Only used with `mode=grep` |
 
 **Query Operators**
 
@@ -574,7 +587,7 @@ The search query supports full FTS5 syntax:
 | Column filter | `body:implementation` | Search only in body field |
 | Grouping | `(meeting OR standup) AND notes` | Parentheses for precedence |
 
-**Response**
+**Response (snippet mode — default)**
 
 ```json
 {
@@ -589,6 +602,7 @@ The search query supports full FTS5 syntax:
       "has_versions": false,
       "tags": ["design"],
       "source": "manual",
+      "category": "decision",
       "snippet": "Initial architecture overview. The system uses a layered design...",
       "created_at": "2026-01-20T09:00:00Z",
       "updated_at": "2026-02-03T16:45:00Z",
@@ -602,6 +616,67 @@ The search query supports full FTS5 syntax:
   ]
 }
 ```
+
+**Response (grep mode)**
+
+When `mode=grep`, each result includes `matches` (line-level matches with context) and `total_lines` instead of `snippet`:
+
+```json
+{
+  "query": "architecture",
+  "total_results": 2,
+  "results": [
+    {
+      "id": 1,
+      "title": "Design Doc",
+      "version": 1,
+      "version_label": "v1",
+      "has_versions": false,
+      "tags": ["design"],
+      "source": "manual",
+      "category": "decision",
+      "total_lines": 45,
+      "matches": [
+        {
+          "line_number": 12,
+          "line": "The architecture uses a layered approach with clear boundaries.",
+          "context_before": ["", "## System Design"],
+          "context_after": ["Each layer communicates through well-defined interfaces."]
+        },
+        {
+          "line_number": 28,
+          "line": "Updated the architecture diagram to reflect new services.",
+          "context_before": ["### Changes"],
+          "context_after": [""]
+        }
+      ],
+      "created_at": "2026-01-20T09:00:00Z",
+      "updated_at": "2026-02-03T16:45:00Z",
+      "url": "https://recuerd0.com/workspaces/1/memories/1",
+      "workspace": {
+        "id": 1,
+        "name": "Project Notes",
+        "url": "https://recuerd0.com/workspaces/1"
+      }
+    }
+  ]
+}
+```
+
+**Examples**
+
+```
+GET /search.json?q=architecture&mode=grep&context=2
+GET /search.json?q=meeting AND notes&mode=grep&before=0&after=3
+GET /search.json?q=title:design&workspace_id=1
+GET /search.json?q=release notes
+```
+
+In the last example, `release notes` is a raw multi-term FTS5 query. By contrast,
+[MCP and workspace search](#mcp-and-workspace-search-safe-phrases-and-exact-tags)
+treats the same input as the exact phrase `release notes` or the exact tag
+`release notes`. The paths differ by design: raw power for API clients, safe
+defaults for agents and the UI.
 
 **Headers**
 
@@ -644,6 +719,36 @@ Invalid FTS5 syntax:
   }
 }
 ```
+
+### MCP and workspace search (safe phrases and exact tags)
+
+The MCP `list_memories.query` argument and the search field within a workspace
+share one search and ordering contract:
+
+- Whitespace is trimmed once. Blank queries return the ordinary unfiltered listing.
+- Queries of three or more characters are phrase-wrapped before FTS searches
+  memory titles and bodies, neutralizing FTS5 operators and special syntax.
+- Matching is substring-level (trigram tokenizer): a phrase can match inside
+  longer words — `rank` matches `ranking`.
+- Tags use case-insensitive whole-tag equality. Partial tags and wildcard
+  characters do not broaden the match.
+- FTS matches come first by rank. A memory that also has the exact tag appears
+  once in the FTS group.
+- Tag-only matches follow by `updated_at DESC`. Stable memory-ID tie-breakers make
+  pagination deterministic.
+- Queries of one or two characters skip FTS and search exact tags only, ordered
+  by recency.
+
+For example, `release notes` matches that exact title/body phrase or a tag whose
+complete value is `release notes`; it is not interpreted as raw FTS5 syntax.
+
+Sort defaults are query-aware. With a query, omitted or invalid `sort` defaults
+to `relevance`; without a query it defaults to `updated`. Explicit `updated`,
+`created`, or `title` always wins. Explicit `relevance` preserves the search
+order when a query is present and resolves to `updated` without one.
+
+See [the raw REST search contract](#rest-get-searchjson-raw-fts5) when FTS5
+operators, grep output, or a cross-workspace API search are needed.
 
 ---
 

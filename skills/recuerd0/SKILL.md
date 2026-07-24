@@ -124,6 +124,8 @@ Supports FTS5 query operators:
 | Column | `body:implementation` | Search only body field |
 | Group | `(meeting OR standup) AND notes` | Parentheses for precedence |
 
+`recuerd0 search` is the raw FTS5 contract above. The workspace UI and MCP `list_memories.query` use a different, safe contract: queries of three or more characters are phrase-wrapped (operators neutralized; trigram substring matching, so `rank` matches `ranking`), tags match by case-insensitive whole-tag equality, and FTS matches come first by relevance with tag-only matches following by recency. Don't carry operator syntax between the two.
+
 ### Categories
 
 Every memory carries a `category` — one of `decision`, `discovery`, `preference`, `general`. The `--category` flag is optional everywhere:

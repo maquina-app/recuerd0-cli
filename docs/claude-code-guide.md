@@ -37,7 +37,7 @@ Tell Claude Code to use Recuerd0 as part of its workflow:
 
 ```markdown
 Before starting non-trivial work, search recuerd0 for relevant memories
-using FTS operators (AND, OR, NOT, prefix*, title:, body:).
+using FTS operators (AND, OR, NOT, title:, body:).
 ```
 
 ## Workflows
@@ -153,7 +153,7 @@ make test-unit 2>&1 | recuerd0 memory create \
 
 ## Search Tips
 
-Search is backed by SQLite FTS5. Use operators for precise queries:
+Search is backed by SQLite FTS5. Use operators for precise queries: Raw FTS5 applies to the REST /search.json path only; the workspace UI and MCP search are phrase-safe — see docs/API.md → Search.
 
 ```bash
 # Prefix matching — auth, authentication, authorization

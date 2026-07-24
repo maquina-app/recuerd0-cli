@@ -114,6 +114,7 @@ recuerd0 import commit <plan> [--yes] [--ledger PATH] [--dry-run]
 
 recuerd0 search <query> [--workspace ID] [--page N] [--category CAT]
   # Supports FTS5 operators: AND, OR, NOT, "phrases", title:field, body:field
+  # Raw FTS5 applies to REST /search.json only; workspace UI & MCP search are phrase-safe (docs/API.md → Search).
 
 recuerd0 version
 ```
