@@ -145,6 +145,34 @@ Memories can be tagged with one of four categories: `decision`, `discovery`, `pr
 
 Memory links (tunnels) connect two memories that cover related topics across workspace boundaries within the same account. Links are undirected (a link from A to B is the same as B to A), unlabeled, and only allowed between memories owned by the same account. They are useful for expressing that two memories — possibly in different workspaces — discuss related subject matter without duplicating content. The destroy URL takes the *other* memory's id, not a join row id; the CLI hides that detail behind `--to`.
 
+## Agent skills
+
+The CLI bundles its canonical Recuerd0 agent skill, so it can be listed and installed without an account or Recuerd0 configuration:
+
+```bash
+recuerd0 skills list
+
+# Install for the current project at ./.claude/skills/recuerd0
+recuerd0 skills install recuerd0
+
+# Install for all projects at $HOME/.claude/skills/recuerd0
+recuerd0 skills install recuerd0 --global
+
+# Install below a custom skills directory
+recuerd0 skills install recuerd0 --target /path/to/skills
+```
+
+An existing destination is left untouched. Re-run with `--force` to replace that skill directory with the bundled canonical copy.
+
+Claude Code users can alternatively install the marketplace plugin:
+
+```text
+/plugin marketplace add maquina-app/rails-claude-code
+/plugin install recuerd0@maquina
+```
+
+The source of truth for the bundled and marketplace copies is [`skills/recuerd0/`](skills/recuerd0/). Marketplace updates mirror that directory byte-for-byte after CLI changes merge.
+
 ## Output
 
 All output is structured JSON, designed for AI tool consumption:

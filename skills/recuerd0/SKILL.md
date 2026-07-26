@@ -7,6 +7,10 @@ description: Manages workspaces and memories in the Recuerd0 platform. Use when 
 
 Persistent, searchable memory for AI coding agents. Query context on demand instead of cramming everything into project files.
 
+## Workspace conventions
+
+When a project has a `.recuerd0.yaml`, follow the [workspace conventions](references/conventions.md): load `workspace context` at the start of the session, search before non-trivial work, and capture only durable, non-obvious knowledge after the work is complete.
+
 ## Output format
 
 JSON envelope with `success`, `data`, `breadcrumbs`, `pagination`, `summary`, `meta`.

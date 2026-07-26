@@ -51,6 +51,9 @@ var rootCmd = &cobra.Command{
 		if cmd.Name() == "version" {
 			return
 		}
+		if isSkillsCommand(cmd) {
+			return
+		}
 
 		flags := config.ResolvedConfig{
 			Account:   cfgAccount,
@@ -142,6 +145,17 @@ func printSuccess(data interface{}) {
 	resp.Print()
 }
 
+// printSuccessWithSummary outputs a success response with a summary.
+func printSuccessWithSummary(data interface{}, summary string) {
+	resp := response.SuccessWithSummary(data, summary)
+	if testMode {
+		testResult.Response = resp
+		testResult.ExitCode = 0
+		panic(testExitSignal{})
+	}
+	resp.Print()
+}
+
 // printSuccessWithExitCode emits the normal success-shaped envelope while
 // preserving command-specific review/abort exit semantics.
 func printSuccessWithExitCode(data interface{}, exitCode int) {
@@ -193,6 +207,15 @@ func printSuccessWithPaginationAndBreadcrumbs(data interface{}, hasNext bool, ne
 // breadcrumb is a helper to create a Breadcrumb.
 func breadcrumb(action, cmd, description string) response.Breadcrumb {
 	return response.Breadcrumb{Action: action, Cmd: cmd, Description: description}
+}
+
+func isSkillsCommand(cmd *cobra.Command) bool {
+	for current := cmd; current != nil; current = current.Parent() {
+		if current == skillsCmd {
+			return true
+		}
+	}
+	return false
 }
 
 // --- Test infrastructure ---
