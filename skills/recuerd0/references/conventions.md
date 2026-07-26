@@ -2,18 +2,17 @@
 
 Every new recuerd0 account starts with **My Workspace**, already shaped around four memories: _MAP, Continuation Brief, _INDEX — Decisions, and D001 — the first decision.
 
-Apply the writing, titling, decision, map, hub, import, and governance conventions whenever working in a Recuerd0 workspace, whether the workspace came from `.recuerd0.yaml`, `--workspace`, an environment variable, or account configuration. Only the automatic session-boot behavior below depends on `.recuerd0.yaml`.
+Apply the writing, titling, decision, map, hub, import, and governance conventions whenever working in a Recuerd0 workspace, whether the workspace came from `.recuerd0.yaml`, `--workspace`, an environment variable, or account configuration.
 
 ## Boot
 
-At session boot, if the current project contains a `.recuerd0.yaml`:
+At session boot, resolve the workspace from `--workspace`, `RECUERD0_WORKSPACE`, or a `.recuerd0.yaml` found by walking up from the project directory. When one resolves:
 
-1. Read `.recuerd0.yaml` and identify its `workspace`.
-2. Run `recuerd0 workspace context <workspace> --pretty`.
-3. Read `_MAP` first and `Continuation Brief` second.
-4. Treat the workspace description, map, brief, and other pinned memories as project context. Follow current decisions and preferences unless the repository proves they are stale.
+1. Run `recuerd0 workspace context <workspace> --pretty`.
+2. Read `_MAP` first and `Continuation Brief` second.
+3. Treat the workspace description, map, brief, and other pinned memories as project context. Follow current decisions and preferences unless the repository proves they are stale.
 
-Do not create a workspace or `.recuerd0.yaml` implicitly. If the project is not configured, continue without automatic boot context unless the user asks to set it up. This gate does not disable the conventions below when a workspace is selected another way.
+When none resolves, continue without boot context. Do not create a workspace implicitly. If the user names a workspace for this project, offer to write `.recuerd0.yaml` with `workspace: <id>` in the project root, and write it only after they agree.
 
 ## Searching
 
