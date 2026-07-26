@@ -113,7 +113,7 @@ If present, relay this hint unchanged:
 
 > This plan looks thin — refine it by hand or hand it to your agent (see the recuerd0 skill's import protocol).
 
-The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerdo import commit`, and pass `--yes` only after the human has seen the digest and said go.
+The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerd0 import commit`, and pass `--yes` only after the human has seen the digest and said go.
 
 ### Search
 

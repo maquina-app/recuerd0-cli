@@ -116,4 +116,4 @@ A clean commit exits 0 and reports:
 
 ## Agent boundary
 
-The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerdo import commit`, and pass `--yes` only after the human has seen the digest and said go.
+The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerd0 import commit`, and pass `--yes` only after the human has seen the digest and said go.
