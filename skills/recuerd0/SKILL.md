@@ -9,11 +9,11 @@ Persistent, searchable memory for AI coding agents. Query context on demand inst
 
 ## Workspace conventions
 
-1. **Boot the selected workspace.** At session boot, resolve the workspace from `--workspace`, `RECUERD0_WORKSPACE`, or a `.recuerd0.yaml` in the project, then run `recuerd0 workspace context <workspace> --pretty` and read `_MAP` first and `Continuation Brief` second. If no workspace resolves and the user names one, offer to write `.recuerd0.yaml` with `workspace: <id>` so the next session boots on its own.
-2. **Search map-first.** Use `_MAP` and its hubs for questions in asking-vocabulary; use keyword search for exact names, identifiers, and phrases.
+1. **Boot the selected workspace.** At session boot, resolve the workspace from `--workspace`, `RECUERD0_WORKSPACE`, or a `.recuerd0.yaml` in the project, then run `recuerd0 workspace context <workspace> --pretty` and read `Map — how this workspace is kept` first and `Continuation Brief` second. If no workspace resolves and the user names one, offer to write `.recuerd0.yaml` with `workspace: <id>` so the next session boots on its own.
+2. **Search map-first.** Use `Map — how this workspace is kept` and its hubs for questions in asking-vocabulary; use keyword search for exact names, identifiers, and phrases.
 3. **Write for retrieval.** Treat titles and map lines as retrieval surfaces, reuse stable tags, choose the narrowest category, and create versions for substantive changes instead of editing history away.
-4. **Keep decisions and structure current.** Give each locked decision its own D-numbered memory and index entry; add content before updating `_MAP`, keep every memory within two hops, and write routes in words someone would actually ask with.
-5. **Grow deliberately.** Keep `_MAP` flat until roughly twenty memories, promote real clusters behind hubs, and after imports propose title and routing improvements before applying the reviewed structure as a new `_MAP` version.
+4. **Keep decisions and structure current.** Give each locked decision its own D-numbered memory and index entry; add content before updating `Map — how this workspace is kept`, keep every memory within two hops, and write routes in words someone would actually ask with.
+5. **Grow deliberately.** Keep `Map — how this workspace is kept` flat until roughly twenty memories, promote real clusters behind hubs, and after imports propose title and routing improvements before applying the reviewed structure as a new `Map — how this workspace is kept` version.
 
 Read [references/conventions.md](references/conventions.md) before writing memories, recording decisions, maintaining maps or hubs, or organizing an import. The writing and structure rules apply to any selected workspace, however it was selected.
 

@@ -1,6 +1,6 @@
 # Workspace conventions
 
-Every new recuerd0 account starts with **My Workspace**, already shaped around four memories: _MAP, Continuation Brief, _INDEX — Decisions, and D001 — the first decision.
+Every new recuerd0 account starts with **My Workspace**, already shaped around four memories: Map — how this workspace is kept, Continuation Brief, Index — decisions, and D001 — the first decision.
 
 Apply the writing, titling, decision, map, hub, import, and governance conventions whenever working in a Recuerd0 workspace, whether the workspace came from `.recuerd0.yaml`, `--workspace`, an environment variable, or account configuration.
 
@@ -9,18 +9,18 @@ Apply the writing, titling, decision, map, hub, import, and governance conventio
 At session boot, resolve the workspace from `--workspace`, `RECUERD0_WORKSPACE`, or a `.recuerd0.yaml` found by walking up from the project directory. When one resolves:
 
 1. Run `recuerd0 workspace context <workspace> --pretty`.
-2. Read `_MAP` first and `Continuation Brief` second.
+2. Read `Map — how this workspace is kept` first and `Continuation Brief` second.
 3. Treat the workspace description, map, brief, and other pinned memories as project context. Follow current decisions and preferences unless the repository proves they are stale.
 
 When none resolves, continue without boot context. Do not create a workspace implicitly. If the user names a workspace for this project, offer to write `.recuerd0.yaml` with `workspace: <id>` in the project root, and write it only after they agree.
 
 ## Searching
 
-Use `_MAP` as the front door. Follow its route directly or through one hub when the question is phrased in the user's own words. The map supplies the judgment literal keyword search cannot.
+Use `Map — how this workspace is kept` as the front door. Follow its route directly or through one hub when the question is phrased in the user's own words. The map supplies the judgment literal keyword search cannot.
 
 Use `recuerd0 search` for exact memory titles, decision numbers, code identifiers, tags, and phrases likely to occur in the text. Keep queries short and distinctive.
 
-Write `_MAP`, hub lines, and titles in asking-vocabulary: the words someone arriving cold would actually use. “Where do the images live?” routes better than “storage architecture.”
+Write `Map — how this workspace is kept`, hub lines, and titles in asking-vocabulary: the words someone arriving cold would actually use. “Where do the images live?” routes better than “storage architecture.”
 
 ## Writing
 
@@ -41,7 +41,7 @@ Version `Continuation Brief` at the end of each substantive session. Its version
 
 Number locked decisions sequentially as D001, D002, and so on.
 
-Give each decision its own memory titled `D### — <decision>`. Record what was chosen, why, and what was rejected. Add one corresponding line to `_INDEX — Decisions` so every decision remains two hops from `_MAP`.
+Give each decision its own memory titled `D### — <decision>`. Record what was chosen, why, and what was rejected. Add one corresponding line to `Index — decisions` so every decision remains two hops from `Map — how this workspace is kept`.
 
 Do not rewrite a decision when the choice changes. Create the next D-numbered decision, state which earlier decision it supersedes, and point back to it. Preserve the old rationale; if the old memory needs a forward pointer, add that marker as a new version rather than erasing its original state. Keep both entries in the decision index.
 
@@ -50,21 +50,21 @@ Do not rewrite a decision when the choice changes. Create the next D-numbered de
 Maintain structure in two passes:
 
 1. Create or version the content memories first.
-2. After every target exists, create a new `_MAP` or hub version that routes to them.
+2. After every target exists, create a new `Map — how this workspace is kept` or hub version that routes to them.
 
-Keep every memory reachable within two hops of `_MAP`: directly from `_MAP`, or from one hub linked by `_MAP`. Never leave a route pointing at a memory that does not exist.
+Keep every memory reachable within two hops of `Map — how this workspace is kept`: directly from `Map — how this workspace is kept`, or from one hub linked by `Map — how this workspace is kept`. Never leave a route pointing at a memory that does not exist.
 
 Write one concise line of judgment per route in asking-vocabulary. A line should tell a cold reader why to follow it, not merely repeat the destination's title. Add, change, or remove map lines whenever the underlying workspace structure changes.
 
 ## Hubs
 
-Keep `_MAP` flat until roughly twenty memories. Hubs earn their place only when a real cluster makes the map crowded.
+Keep `Map — how this workspace is kept` flat until roughly twenty memories. Hubs earn their place only when a real cluster makes the map crowded.
 
 Promote a cluster in four steps:
 
-1. Identify a coherent cluster already represented by several `_MAP` lines.
+1. Identify a coherent cluster already represented by several `Map — how this workspace is kept` lines.
 2. Create a `Hub — <topic>` memory with one asking-vocabulary routing line per existing cluster memory.
-3. Create a new `_MAP` version that replaces those cluster lines with one line pointing to the hub.
+3. Create a new `Map — how this workspace is kept` version that replaces those cluster lines with one line pointing to the hub.
 4. Verify that every moved memory is still reachable within two hops and that every route points at a real memory.
 
 Do not seed empty hubs or create filler to justify them.
@@ -73,15 +73,15 @@ Do not seed empty hubs or create filler to justify them.
 
 Do not leave an import as an unstructured pile. After `import commit` completes:
 
-1. Group the imported memories into useful clusters and draft asking-vocabulary `_MAP` lines for them.
+1. Group the imported memories into useful clusters and draft asking-vocabulary `Map — how this workspace is kept` lines for them.
 2. Identify weak titles that will not retrieve well. Fix each one with `recuerd0 memory version create <memory_id> --workspace <workspace> --title "<better title>"`, preserving the imported version.
 3. If the workspace is now past roughly twenty memories, propose real cluster promotions behind hubs; do not create hubs automatically.
 4. Present the title changes, cluster routes, and hub proposals for review.
-5. Apply approved content or hub writes first, then apply the reviewed routing structure as a new `_MAP` version.
+5. Apply approved content or hub writes first, then apply the reviewed routing structure as a new `Map — how this workspace is kept` version.
 
 ## Write governance
 
-Read and search freely. Before filing memories or changing `_MAP`, a hub, a decision, or an index, show the proposed write and get human confirmation. Import execution still follows its stricter propose → review → commit protocol and requires explicit approval before `--yes`.
+Read and search freely. Before filing memories or changing `Map — how this workspace is kept`, a hub, a decision, or an index, show the proposed write and get human confirmation. Import execution still follows its stricter propose → review → commit protocol and requires explicit approval before `--yes`.
 
 Never create structural filler, dangling routes, duplicate memories, or silent decision rewrites. Preserve provenance and history through versions. After writing, verify the command response and report what was created or versioned, including memory IDs.
 
