@@ -4,6 +4,8 @@ Every new recuerd0 account starts with **My Workspace**, already shaped around f
 
 Apply the writing, titling, decision, map, hub, import, and governance conventions whenever working in a Recuerd0 workspace, whether the workspace came from `.recuerd0.yaml`, `--workspace`, an environment variable, or account configuration.
 
+A workspace's own conventions take precedence over this file. If the workspace records how it is kept — usually in a memory whose title begins with "Map" — follow that instead of the rules below. If a workspace records no conventions, do not impose these; treat them as a default the user has not chosen.
+
 ## Boot
 
 At session boot, resolve the workspace from `--workspace`, `RECUERD0_WORKSPACE`, or a `.recuerd0.yaml` found by walking up from the project directory. When one resolves:
