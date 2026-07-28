@@ -60,6 +60,19 @@ func TestSuccessWithBreadcrumbs(t *testing.T) {
 	}
 }
 
+func TestSuccessWithDetails(t *testing.T) {
+	bc := []Breadcrumb{
+		{Action: "review", Cmd: "plan.yaml", Description: "Review plan"},
+	}
+	r := SuccessWithDetails(map[string]string{"plan": "ready"}, "Plan written", "plan.yaml", bc)
+	if !r.Success || r.Summary != "Plan written" || r.Location != "plan.yaml" {
+		t.Fatalf("unexpected response: %#v", r)
+	}
+	if len(r.Breadcrumbs) != 1 || r.Breadcrumbs[0].Action != "review" {
+		t.Fatalf("unexpected breadcrumbs: %#v", r.Breadcrumbs)
+	}
+}
+
 func TestSuccessWithPaginationAndBreadcrumbs(t *testing.T) {
 	bc := []Breadcrumb{
 		{Action: "show", Cmd: "recuerd0 memory show 1", Description: "View memory"},
@@ -90,6 +103,17 @@ func TestError(t *testing.T) {
 	}
 	if r.Error.Status != 404 {
 		t.Errorf("expected status 404, got %d", r.Error.Status)
+	}
+}
+
+func TestErrorWithData(t *testing.T) {
+	data := map[string]int{"created": 2}
+	r := ErrorWithData(data, errors.NewValidationError("commit stopped"))
+	if r.Success {
+		t.Fatal("expected success=false")
+	}
+	if r.Data == nil || r.Error == nil || r.Error.Code != errors.CodeValidation {
+		t.Fatalf("unexpected response: %#v", r)
 	}
 }
 

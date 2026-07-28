@@ -94,10 +94,10 @@ recuerd0 import propose <path> --workspace <ws_id> \
   [--plan import.plan.yaml] [--ledger PATH] \
   [--adapter obsidian_markdown|workspace_export] [--fresh]
 
-recuerd0 import commit <plan> [--yes] [--ledger PATH] [--dry-run]
+recuerd0 import commit <plan> [--yes] [--ledger PATH]
 ```
 
-Directories auto-detect as Markdown/Obsidian imports; valid export-v1 JSON files auto-detect as workspace exports. Propose performs GET-only conflict detection and atomically saves the plan. Commit without `--yes`, or with `--dry-run`, validates and returns the same digest with exit 1 and no writes. `--dry-run` wins over `--yes`.
+Directories auto-detect as Markdown/Obsidian imports; valid export-v1 JSON files auto-detect as workspace exports. Propose performs GET-only conflict detection and atomically saves the plan. Commit repeats validation and executes the reviewed plan. It prompts once in an interactive terminal; non-interactive callers must pass `--yes`.
 
 #### Import review protocol
 
@@ -105,9 +105,9 @@ Directories auto-detect as Markdown/Obsidian imports; valid export-v1 JSON files
 2. Review the YAML only. Keep every manifest `action` aligned with all exception `resolution` values for the same path.
 3. After editing any scanner-owned field (`title`, `category`, `tags`, or `links`), re-run propose with the same source, workspace, plan, and ledger arguments. The edits are preserved and hashes refresh.
 4. Confirm every `target_memory_id` before approving `version`; never attach one to `create`.
-5. Re-run commit without `--yes` to validate and show the human the final digest.
-6. Stop at the reviewed plan unless the human explicitly says go.
-7. After approved execution, report `ops` and `plan.complete`; also surface `aborted`, `links_failed`, or `links_skipped_unresolvable`.
+5. Show the human the final digest from propose and stop at the reviewed plan unless they explicitly say go.
+6. After approval, execute commit; an agent has no TTY and therefore passes `--yes`.
+7. Report `ops` and `plan.complete`; also surface `aborted`, `links_failed`, or `links_skipped_unresolvable`.
 
 If present, relay this hint unchanged:
 

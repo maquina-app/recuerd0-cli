@@ -107,6 +107,18 @@ func SuccessWithBreadcrumbs(data interface{}, summary string, breadcrumbs []Brea
 	}
 }
 
+// SuccessWithDetails creates a success response with human and agent guidance.
+func SuccessWithDetails(data interface{}, summary, location string, breadcrumbs []Breadcrumb) *Response {
+	return &Response{
+		Success:     true,
+		Data:        data,
+		Summary:     summary,
+		Location:    location,
+		Breadcrumbs: breadcrumbs,
+		Meta:        newMeta(),
+	}
+}
+
 // SuccessWithPaginationAndBreadcrumbs creates the full response with all fields.
 func SuccessWithPaginationAndBreadcrumbs(data interface{}, hasNext bool, nextURL string, summary string, breadcrumbs []Breadcrumb) *Response {
 	return &Response{
@@ -133,6 +145,13 @@ func Error(err *errors.CLIError) *Response {
 		},
 		Meta: newMeta(),
 	}
+}
+
+// ErrorWithData creates an error response while retaining structured partial results.
+func ErrorWithData(data interface{}, err *errors.CLIError) *Response {
+	response := Error(err)
+	response.Data = data
+	return response
 }
 
 // JSON serializes the response to JSON bytes.

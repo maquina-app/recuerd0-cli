@@ -156,21 +156,6 @@ func printSuccessWithSummary(data interface{}, summary string) {
 	resp.Print()
 }
 
-// printSuccessWithExitCode emits the normal success-shaped envelope while
-// preserving command-specific review/abort exit semantics.
-func printSuccessWithExitCode(data interface{}, exitCode int) {
-	resp := response.Success(data)
-	if testMode {
-		testResult.Response = resp
-		testResult.ExitCode = exitCode
-		panic(testExitSignal{})
-	}
-	resp.Print()
-	if exitCode != 0 {
-		os.Exit(exitCode)
-	}
-}
-
 // printSuccessWithLocation outputs a success response with location.
 func printSuccessWithLocation(data interface{}, location string) {
 	resp := response.SuccessWithLocation(data, location)
@@ -191,6 +176,38 @@ func printSuccessWithBreadcrumbs(data interface{}, summary string, breadcrumbs [
 		panic(testExitSignal{})
 	}
 	resp.Print()
+}
+
+// printSuccessWithDetails outputs a success response with summary, location,
+// and breadcrumbs.
+func printSuccessWithDetails(data interface{}, summary, location string, breadcrumbs []response.Breadcrumb) {
+	resp := response.SuccessWithDetails(data, summary, location, breadcrumbs)
+	if testMode {
+		testResult.Response = resp
+		testResult.ExitCode = 0
+		panic(testExitSignal{})
+	}
+	resp.Print()
+}
+
+// exitWithErrorAndData outputs an error response with structured partial data.
+func exitWithErrorAndData(err error, data interface{}) {
+	var cliErr *errors.CLIError
+	switch e := err.(type) {
+	case *errors.CLIError:
+		cliErr = e
+	default:
+		cliErr = errors.NewError(err.Error())
+	}
+
+	resp := response.ErrorWithData(data, cliErr)
+	if testMode {
+		testResult.Response = resp
+		testResult.ExitCode = cliErr.ExitCode
+		panic(testExitSignal{})
+	}
+	resp.Print()
+	os.Exit(cliErr.ExitCode)
 }
 
 // printSuccessWithPaginationAndBreadcrumbs outputs the full response.
