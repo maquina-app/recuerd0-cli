@@ -69,7 +69,7 @@ recuerd0 import commit import.plan.yaml --yes --pretty
 
 When helping with the review, keep each row's `action` aligned with every exception `resolution` for the same path, confirm each `target_memory_id`, and relay all counts and any hint verbatim. After execution, report `ops` and `plan.complete`.
 
-The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerdo import commit`, and pass `--yes` only after the human has seen the digest and said go.
+The agent's job ends at the plan. Never import by writing memories one-by-one through MCP; always execute through `recuerd0 import commit`, and pass `--yes` only after the human has seen the digest and said go.
 
 See [IMPORT.md](IMPORT.md) for adapter behavior, sticky re-propose rules, ledger recovery, and exit codes.
 
