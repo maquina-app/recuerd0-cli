@@ -17,19 +17,76 @@ Go binary: `/opt/homebrew/bin/go` (not in default PATH in some environments).
 
 ## Build & Release
 
-Releases are cut **manually and locally from a Mac** with [GoReleaser](https://goreleaser.com) (`.goreleaser.yaml`) — there is **no release CI workflow** (only `.github/workflows/test.yml` for CI). The GitHub Release is published to this same repo (`maquina-app/recuerd0-cli`).
+**Releases are cut locally from a Mac**, never through GitHub Actions. There is **no release
+workflow** in this repo (only `.github/workflows/test.yml` for CI) — do not add one. The
+darwin binaries are ad-hoc `codesign`ed in a build post-hook (`scripts/sign-darwin.sh`)
+because arm64 SIGKILLs an unsigned Mach-O, and `codesign` only exists on macOS. That is what
+pins the release to a Mac.
 
-One release produces: cross-compiled `recuerd0-<os>-<arch>` archives (darwin/linux/windows × amd64/arm64; `.tar.gz`, `.zip` for windows), `checksums.txt`, `.deb`/`.rpm` (nfpm), a Homebrew **cask** pushed to `maquina-app/homebrew-tap` (`Casks/recuerd0.rb` — `brew install maquina-app/tap/recuerd0`), and `scripts/install.sh` uploaded as a release asset (backs the `curl | sh` one-liner).
+The GitHub Release is published to this same repo (`maquina-app/recuerd0-cli`).
 
-- Version is stamped via ldflags `-X main.version={{ .Version }}` (read in `cmd/recuerd0/main.go`).
-- macOS binaries are ad-hoc codesigned in a build post-hook (`scripts/sign-darwin.sh`) so arm64 won't SIGKILL them — **release must be cut from a Mac**.
+One release produces: cross-compiled `recuerd0-<os>-<arch>` archives (darwin/linux/windows ×
+amd64/arm64; `.tar.gz`, `.zip` for windows), `checksums.txt`, `.deb`/`.rpm` (nfpm), a Homebrew
+**cask** pushed to `maquina-app/homebrew-tap` (`Casks/recuerd0.rb` —
+`brew install maquina-app/tap/recuerd0`), and `scripts/install.sh` uploaded as a release asset
+(backs the `curl | sh` one-liner).
 
-Cutting a release:
+Version is stamped via ldflags `-X main.version={{ .Version }}` (read in
+`cmd/recuerd0/main.go`) — it comes from the **tag**, so the tag must exist before goreleaser
+runs. A snapshot build reports `X.Y.Z-next` instead.
+
+### Releasing the binary
+
+The gate is local. Run it green before tagging — a tag is public the moment it's pushed:
+
 ```bash
-git tag vX.Y.Z && git push origin vX.Y.Z
-HOMEBREW_TAP_TOKEN=$(gh auth token) GITHUB_TOKEN=$(gh auth token) goreleaser release --clean
+make test-unit        # full unit suite
+go fmt ./...          # gofmt may realign struct fields; commit the result
+make release-check    # goreleaser check — validates .goreleaser.yaml
+make release-snapshot # full dry run: builds every target, publishes nothing
 ```
-`GITHUB_TOKEN` needs `contents:write` on `maquina-app/recuerd0-cli`; `HOMEBREW_TAP_TOKEN` needs `contents:write` on `maquina-app/homebrew-tap` (cross-repo). A `gh` token with `repo` scope covers both. Validate/dry-run first with `make release-check` / `make release-snapshot`.
+
+Then cut it. Working tree must be clean and in sync with `origin/main`:
+
+```bash
+# 1. Write the notes FIRST (see below) and commit them — docs/releases/vX.Y.Z.md
+# 2. Tag and push; the tag drives the stamped version
+git tag vX.Y.Z && git push origin vX.Y.Z
+
+# 3. Build + publish: GitHub Release, archives, checksums, deb/rpm, Homebrew cask
+HOMEBREW_TAP_TOKEN=$(gh auth token) GITHUB_TOKEN=$(gh auth token) goreleaser release --clean
+
+# 4. Attach the notes — goreleaser publishes an EMPTY body
+gh release edit vX.Y.Z --notes-file docs/releases/vX.Y.Z.md
+```
+
+`GITHUB_TOKEN` needs `contents:write` on `maquina-app/recuerd0-cli`; `HOMEBREW_TAP_TOKEN`
+needs `contents:write` on `maquina-app/homebrew-tap` (cross-repo — the built-in token can't
+write to another repo). A `gh` token with `repo` scope covers both, hence `$(gh auth token)`
+for each.
+
+Verify after: `gh release view vX.Y.Z` (12 assets, not draft) and the cask's `version` in
+`maquina-app/homebrew-tap`.
+
+### Release notes
+
+Notes are **hand-written prose**, never generated. `changelog: disable: true` in
+`.goreleaser.yaml` is deliberate — leave it. Commits here aren't conventional-commit style,
+and a generated list restates *what* changed without the *why* that makes notes worth
+reading.
+
+Write `docs/releases/vX.Y.Z.md`, commit it, and attach it with the `gh release edit` step
+above. The file stays in the repo as the durable record.
+
+Structure (see `docs/releases/v0.6.0.md`):
+- `# recuerd0 vX.Y.Z` then `_Released YYYY-MM-DD_`
+- `## Features` / `## Fixes`, each entry an `### Imperative headline (#PR)`
+- Lead with a short paragraph on the **problem** — the failure or gap that motivated the
+  change — then bold-led bullets on what changed
+- Close with `## Upgrading`, even when it's just "No config changes required."
+
+Draft from merged PR bodies (`gh pr list --state merged --json number,title,body`), not from
+`git log` — the PR descriptions carry the reasoning; commit subjects don't.
 
 ## Architecture
 
