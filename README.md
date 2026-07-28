@@ -240,21 +240,58 @@ archives (darwin/linux/windows × amd64/arm64; `.tar.gz`, `.zip` for windows),
 cask (pushed to `maquina-app/homebrew-tap`). macOS binaries are ad-hoc codesigned
 during the build so they run on Apple Silicon, so the release must be cut from a Mac.
 
-Validate the config and dry-run before publishing:
+Validate and dry-run before publishing — the snapshot builds every target and
+generates the cask without touching GitHub:
 ```bash
-goreleaser check                       # or: make release-check
-goreleaser release --snapshot --clean  # or: make release-snapshot (no publish)
+make test-unit         # unit suite
+go fmt ./...           # gofmt may realign struct fields; commit the result
+make release-check     # or: goreleaser check
+make release-snapshot  # or: goreleaser release --snapshot --clean (no publish)
 ```
 
 Cut a real release:
 ```bash
 brew install goreleaser   # one-time
+
+# 1. Write and commit the release notes first (see below)
+#    docs/releases/v1.2.0.md
+
+# 2. Tag and push — the version is stamped from the tag
 git tag v1.2.0 && git push origin v1.2.0
-HOMEBREW_TAP_TOKEN=<pat> GITHUB_TOKEN=<pat> goreleaser release --clean
+
+# 3. Build and publish the Release, packages, and Homebrew cask
+HOMEBREW_TAP_TOKEN=$(gh auth token) GITHUB_TOKEN=$(gh auth token) goreleaser release --clean
+
+# 4. Attach the notes — GoReleaser publishes an empty release body
+gh release edit v1.2.0 --notes-file docs/releases/v1.2.0.md
+
+# 5. Verify: 12 assets, not a draft, body populated
+gh release view v1.2.0
 ```
 
 - `GITHUB_TOKEN` needs `contents:write` on `maquina-app/recuerd0-cli` (publishes the Release here).
 - `HOMEBREW_TAP_TOKEN` needs `contents:write` on `maquina-app/homebrew-tap` (pushes the cask cross-repo).
+- A `gh` token with `repo` scope covers both, hence `$(gh auth token)` for each. Plain PATs work too.
+
+### Release notes
+
+Notes are hand-written and live in `docs/releases/vX.Y.Z.md`. Changelog generation
+is intentionally disabled (`changelog: disable: true`), so **step 4 above is
+required** — without it the release ships with an empty body and GoReleaser still
+reports success.
+
+Each file follows the same shape (see [`docs/releases/v0.6.0.md`](docs/releases/v0.6.0.md)):
+
+- `# recuerd0 vX.Y.Z`, then `_Released YYYY-MM-DD_`
+- `## Features` / `## Fixes`, each entry an `### Imperative headline (#PR)`
+- A short paragraph on the problem the change solved, then bullets on what changed
+- A closing `## Upgrading` section, even when nothing is required
+
+Draft from merged pull request descriptions rather than commit subjects — they
+carry the reasoning:
+```bash
+gh pr list --state merged --json number,title,body
+```
 
 ## License
 
