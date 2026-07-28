@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const expectedConventionsSHA256 = "80748cff478b274716aecbc9ec0e8a434e52187dbee87fcfe7e4652ff2a33173"
+const expectedConventionsSHA256 = "6771db25678e7fd556d5bed62527cd713d3c7f0cafd43269e4242441465f1ddd"
 
 func TestConventionsMatchReviewedArtifact(t *testing.T) {
 	data, err := os.ReadFile("recuerd0/references/conventions.md")
