@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -12,8 +13,10 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/maquina/recuerd0-cli/internal/errors"
+	"github.com/maquina/recuerd0-cli/internal/response"
 	bundledskills "github.com/maquina/recuerd0-cli/skills"
 )
 
@@ -62,10 +65,22 @@ var skillsListCmd = &cobra.Command{
 }
 
 var (
-	skillsInstallGlobal bool
-	skillsInstallTarget string
-	skillsInstallForce  bool
+	skillsInstallGlobal  bool
+	skillsInstallTarget  string
+	skillsInstallForce   bool
+	skillsGuidanceOutput io.Writer = os.Stderr
+	skillsGuidanceIsTTY            = func() bool {
+		return term.IsTerminal(int(os.Stderr.Fd()))
+	}
 )
+
+const skillsInstallGuidance = `Installed to %s
+
+Claude Code loads this automatically. Restart an open session to pick it up.
+
+Using a different agent? Point it at SKILL.md in that directory, or paste the
+file's contents into your agent's instructions.
+`
 
 var skillsInstallCmd = &cobra.Command{
 	Use:   "install [name]",
@@ -146,11 +161,34 @@ var skillsInstallCmd = &cobra.Command{
 			})
 		}
 
-		printSuccessWithSummary(
+		names := make([]string, len(installed))
+		for i, skill := range installed {
+			names[i] = skill.Name
+		}
+		displayTarget := displayPath(target)
+		summary := fmt.Sprintf(
+			"Installed %s to %s",
+			strings.Join(names, ", "),
+			displayTarget,
+		)
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("list-skills", "recuerd0 skills list", "Verify the bundled skills"),
+		}
+		printSkillsInstallGuidance(displayTarget)
+		printSuccessWithDetails(
 			skillInstallData{Installed: installed},
-			fmt.Sprintf("%d skill(s) installed", len(installed)),
+			summary,
+			displayTarget,
+			breadcrumbs,
 		)
 	},
+}
+
+func printSkillsInstallGuidance(target string) {
+	if !skillsGuidanceIsTTY() {
+		return
+	}
+	fmt.Fprintf(skillsGuidanceOutput, skillsInstallGuidance, target)
 }
 
 func init() {

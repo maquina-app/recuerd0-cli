@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -171,6 +172,7 @@ func TestSkillsInstallTargetReinstallAndForce(t *testing.T) {
 	resetSkillsInstallFlags(t)
 	target := t.TempDir()
 	skillsInstallTarget = target
+	stderr := setSkillsGuidance(t, true)
 
 	mock := NewMockClient()
 	result := SetTestMode(mock)
@@ -198,6 +200,20 @@ func TestSkillsInstallTargetReinstallAndForce(t *testing.T) {
 	}
 	if data.Installed[0].Path != absoluteDestination {
 		t.Errorf("installed path = %q, want %q", data.Installed[0].Path, absoluteDestination)
+	}
+	if result.Response.Location != target {
+		t.Errorf("location = %q, want %q", result.Response.Location, target)
+	}
+	if result.Response.Summary != fmt.Sprintf("Installed recuerd0 to %s", target) {
+		t.Errorf("summary = %q", result.Response.Summary)
+	}
+	if len(result.Response.Breadcrumbs) != 1 ||
+		result.Response.Breadcrumbs[0].Cmd != "recuerd0 skills list" {
+		t.Fatalf("breadcrumbs = %#v", result.Response.Breadcrumbs)
+	}
+	wantGuidance := fmt.Sprintf(skillsInstallGuidance, target)
+	if stderr.String() != wantGuidance {
+		t.Fatalf("guidance:\ngot:\n%s\nwant:\n%s", stderr.String(), wantGuidance)
 	}
 	wantFiles := embeddedSkillFiles(t, "recuerd0")
 	if !reflect.DeepEqual(data.Installed[0].Files, wantFiles) {
@@ -228,6 +244,9 @@ func TestSkillsInstallTargetReinstallAndForce(t *testing.T) {
 	if !reflect.DeepEqual(untouched, changed) {
 		t.Fatal("reinstall without --force changed the existing skill")
 	}
+	if stderr.String() != wantGuidance {
+		t.Fatalf("existing-install failure wrote guidance: %q", stderr.String())
+	}
 
 	strayPath := filepath.Join(destination, "stray.txt")
 	if err := os.WriteFile(strayPath, []byte("remove me"), 0644); err != nil {
@@ -244,7 +263,39 @@ func TestSkillsInstallTargetReinstallAndForce(t *testing.T) {
 	if _, err := os.Lstat(strayPath); !os.IsNotExist(err) {
 		t.Fatalf("stray file still exists after forced install: %v", err)
 	}
+	if stderr.String() != wantGuidance+wantGuidance {
+		t.Fatalf("expected one guidance block per successful invocation: %q", stderr.String())
+	}
 	assertInstalledSkillMatchesEmbedded(t, destination, "recuerd0")
+}
+
+func TestSkillsInstallDefaultTargetUsesRelativeDisplayPath(t *testing.T) {
+	resetSkillsInstallFlags(t)
+	project := t.TempDir()
+	t.Chdir(project)
+	stderr := setSkillsGuidance(t, true)
+
+	mock := NewMockClient()
+	result := SetTestMode(mock)
+	defer ResetTestMode()
+
+	RunTestCommand(func() {
+		skillsInstallCmd.Run(skillsInstallCmd, []string{"recuerd0"})
+	})
+
+	if result.ExitCode != 0 || result.Response == nil || !result.Response.Success {
+		t.Fatalf("install failed: %#v", result)
+	}
+	if result.Response.Location != filepath.Join(".claude", "skills") {
+		t.Fatalf("location = %q", result.Response.Location)
+	}
+	if result.Response.Summary != "Installed recuerd0 to .claude/skills" {
+		t.Fatalf("summary = %q", result.Response.Summary)
+	}
+	want := fmt.Sprintf(skillsInstallGuidance, filepath.Join(".claude", "skills"))
+	if stderr.String() != want {
+		t.Fatalf("guidance:\ngot:\n%s\nwant:\n%s", stderr.String(), want)
+	}
 }
 
 func TestSkillsInstallGlobalUsesIsolatedHome(t *testing.T) {
@@ -389,4 +440,18 @@ func TestSkillsInstallRootCommandDoesNotLoadConfig(t *testing.T) {
 	if len(entries) != 0 {
 		t.Fatalf("skills command created files under HOME: %#v", entries)
 	}
+}
+
+func setSkillsGuidance(t *testing.T, tty bool) *bytes.Buffer {
+	t.Helper()
+	output := &bytes.Buffer{}
+	oldOutput := skillsGuidanceOutput
+	oldIsTTY := skillsGuidanceIsTTY
+	skillsGuidanceOutput = output
+	skillsGuidanceIsTTY = func() bool { return tty }
+	t.Cleanup(func() {
+		skillsGuidanceOutput = oldOutput
+		skillsGuidanceIsTTY = oldIsTTY
+	})
+	return output
 }

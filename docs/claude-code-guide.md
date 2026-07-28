@@ -60,10 +60,7 @@ Import is propose → review → commit: `propose` writes a reviewable `import.p
 # Scan Markdown/Obsidian notes and emit the review digest.
 recuerd0 import propose ./notes --workspace 47 --pretty
 
-# Review import.plan.yaml, then preview the same digest (exit 1, no writes).
-recuerd0 import commit import.plan.yaml --pretty
-
-# Run only after the human approves.
+# Review import.plan.yaml and the digest. Run only after the human approves.
 recuerd0 import commit import.plan.yaml --yes --pretty
 ```
 

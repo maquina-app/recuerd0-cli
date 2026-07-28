@@ -49,7 +49,7 @@ Review each manifest row and its exceptions:
 
 Scanner-owned fields are title, category, tags, and links. Review-owned fields include action, resolution, target ID, and notes. If a scanner-owned field is edited, future re-proposes preserve the reviewed metadata and its original fingerprint, then add `row edited — rules changes not applied` once. `--fresh` is the explicit way to discard that sticky provenance.
 
-After editing any scanner-owned field (`title`, `category`, `tags`, or `links`), re-run `recuerd0 import propose` with the same source, workspace, plan, and ledger arguments. The reviewed edits are preserved while source and content hashes refresh. Only then preview with `recuerd0 import commit <plan>` and, after human approval, execute with `--yes`.
+After editing any scanner-owned field (`title`, `category`, `tags`, or `links`), re-run `recuerd0 import propose` with the same source, workspace, plan, and ledger arguments. The reviewed edits are preserved while source and content hashes refresh. Only then show the refreshed digest to the human and execute the reviewed plan after approval.
 
 `rules.tag_map` maps each raw folder/frontmatter contribution to zero or more contributions before normalization. A missing key keeps the original contribution, an empty list removes it, and multiple entries fan out:
 
@@ -74,24 +74,25 @@ Propose assigns conservative defaults:
 
 When identical Markdown bodies occur, the lexicographically earliest path remains eligible to create. Only later paths receive `dupe_exact`.
 
-## 3. Preview or dry-run
+## 3. Commit
 
 ```bash
+# Interactive: validates, shows the target workspace, and asks once.
 recuerd0 import commit import.plan.yaml --pretty
-recuerd0 import commit import.plan.yaml --yes --dry-run --pretty
+
+# Non-interactive: use only after the human approves the digest.
+recuerd0 import commit import.plan.yaml --yes --pretty
 ```
 
-Both commands validate the plan, ledger, agreement rules, export fidelity, and source hashes; both emit the same digest shape as propose; both perform no writes and exit 1. `--dry-run` wins over `--yes`.
+Commit repeats the plan, ledger, agreement, export-fidelity, and source-hash validation immediately before writing. In a terminal it prompts once with the create/version counts and workspace id and name. Declining exits zero without writing. Without a TTY, `--yes` is required.
+
+If the reviewed plan contains no create or version actions, commit reports that it contains no writes and exits zero without authentication or network access.
 
 If source content changed, commit stops before pass 1 with:
 
 > source changed since propose — re-run propose
 
-## 4. Commit
-
-```bash
-recuerd0 import commit import.plan.yaml --yes --pretty
-```
+## 4. Execution and recovery
 
 The default ledger is `import.ledger.jsonl` beside the plan. It is append-only JSONL. Every write has an fsynced `intent` before the POST and an fsynced `committed` record only after a fresh GET matches title, body, tag order, category, and expected server version.
 

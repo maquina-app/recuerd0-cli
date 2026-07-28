@@ -73,7 +73,7 @@ recuerd0 search "error handling"
 ## Commands
 
 ```
-recuerd0 account add <name> --token TOKEN [--api-url URL]
+recuerd0 account add <name> --token TOKEN [--api-url URL] [--skip-verify]
 recuerd0 account list
 recuerd0 account select <name>
 recuerd0 account remove <name>
@@ -110,7 +110,7 @@ recuerd0 memory link remove <memory_id> --to <other_id> [--workspace ID]
 recuerd0 memory version create [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T] [--category CAT]
 
 recuerd0 import propose <path> --workspace ID [--plan import.plan.yaml] [--ledger PATH] [--adapter obsidian_markdown|workspace_export] [--fresh]
-recuerd0 import commit <plan> [--yes] [--ledger PATH] [--dry-run]
+recuerd0 import commit <plan> [--yes] [--ledger PATH]
 
 recuerd0 search <query> [--workspace ID] [--page N] [--category CAT]
   # Supports FTS5 operators: AND, OR, NOT, "phrases", title:field, body:field
@@ -128,14 +128,14 @@ Import is propose → review → commit: `propose` writes a reviewable `import.p
 ```bash
 recuerd0 import propose ./vault --workspace 12 --pretty
 
-# Preview again after review. A preview is success-shaped JSON but exits 1.
+# Review import.plan.yaml, then commit. An interactive terminal asks once.
 recuerd0 import commit import.plan.yaml --pretty
 
-# Execute exactly the reviewed plan, with an append-only resume ledger.
+# Agents and other non-interactive callers pass --yes only after human approval.
 recuerd0 import commit import.plan.yaml --yes --pretty
 ```
 
-`--dry-run` always wins over `--yes`. The default ledger is `import.ledger.jsonl` beside the plan. Keep it: it supplies immutable chain identity and exact resume state after interruption. See [docs/IMPORT.md](docs/IMPORT.md) for plan rules, review guidance, exit behavior, and recovery details.
+The default ledger is `import.ledger.jsonl` beside the plan. Keep it: it supplies immutable chain identity and exact resume state after interruption. See [docs/IMPORT.md](docs/IMPORT.md) for plan rules, review guidance, confirmation behavior, and recovery details.
 
 ### Categories
 
@@ -200,6 +200,8 @@ recuerd0 account add personal --token tok_abc123
 recuerd0 account add work --token tok_xyz789 --api-url https://work.recuerd0.ai
 recuerd0 account select work
 ```
+
+`account add` verifies the submitted token and API URL by listing workspaces before saving the account. Use `--skip-verify` only when preparing configuration offline or in an air-gapped environment; it saves the credentials without contacting the API.
 
 ### Per-project config
 
