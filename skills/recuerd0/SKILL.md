@@ -7,6 +7,16 @@ description: Manages workspaces and memories in the Recuerd0 platform. Use when 
 
 Persistent, searchable memory for AI coding agents. Query context on demand instead of cramming everything into project files.
 
+## Workspace conventions
+
+1. **Boot configured projects.** At session boot, if the project has a `.recuerd0.yaml`, read its `workspace`, run `recuerd0 workspace context <workspace> --pretty`, then read `_MAP` first and `Continuation Brief` second.
+2. **Search map-first.** Use `_MAP` and its hubs for questions in asking-vocabulary; use keyword search for exact names, identifiers, and phrases.
+3. **Write for retrieval.** Treat titles and map lines as retrieval surfaces, reuse stable tags, choose the narrowest category, and create versions for substantive changes instead of editing history away.
+4. **Keep decisions and structure current.** Give each locked decision its own D-numbered memory and index entry; add content before updating `_MAP`, keep every memory within two hops, and write routes in words someone would actually ask with.
+5. **Grow deliberately.** Keep `_MAP` flat until roughly twenty memories, promote real clusters behind hubs, and after imports propose title and routing improvements before applying the reviewed structure as a new `_MAP` version.
+
+Read [references/conventions.md](references/conventions.md) before writing memories, recording decisions, maintaining maps or hubs, or organizing an import. The writing and structure rules apply to any selected workspace; only the automatic session-boot rule depends on `.recuerd0.yaml`.
+
 ## Output format
 
 JSON envelope with `success`, `data`, `breadcrumbs`, `pagination`, `summary`, `meta`.

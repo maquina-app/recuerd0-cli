@@ -21,6 +21,16 @@ The key advantage: Claude Code can *query* Recuerd0 for exactly the context it n
 
 ## Getting Started
 
+### Install the skill
+
+Install the bundled Recuerd0 skill in the current project:
+
+```bash
+recuerd0 skills install recuerd0
+```
+
+Claude Code discovers it at `.claude/skills/recuerd0`. Use `--global` to install it at `$HOME/.claude/skills/recuerd0` for every project, or `--target DIR` to choose another skills directory. List the bundled catalog with `recuerd0 skills list`; add `--force` only when you intend to replace an existing installation.
+
 ### Project setup — one workspace per project
 
 Create a workspace for each project and add a `.recuerd0.yaml` to the project root so all memory commands default to the right workspace:
