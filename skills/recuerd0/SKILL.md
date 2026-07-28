@@ -7,15 +7,21 @@ description: Manages workspaces and memories in the Recuerd0 platform. Use when 
 
 Persistent, searchable memory for AI coding agents. Query context on demand instead of cramming everything into project files.
 
-## Workspace conventions
+**Read `references/conventions.md` before writing anything.** It carries the workspace
+conventions — boot order, titling, decisions, map maintenance, hubs, and capture
+discipline. A workspace's own recorded conventions take precedence over both files.
 
-1. **Boot the selected workspace.** At session boot, resolve the workspace from `--workspace`, `RECUERD0_WORKSPACE`, or a `.recuerd0.yaml` in the project, then run `recuerd0 workspace context <workspace> --pretty` and read `Map — how this workspace is kept` first and `Continuation Brief` second. If no workspace resolves and the user names one, offer to write `.recuerd0.yaml` with `workspace: <id>` so the next session boots on its own.
-2. **Search map-first.** Use `Map — how this workspace is kept` and its hubs for questions in asking-vocabulary; use keyword search for exact names, identifiers, and phrases.
-3. **Write for retrieval.** Treat titles and map lines as retrieval surfaces, reuse stable tags, choose the narrowest category, and create versions for substantive changes instead of editing history away.
-4. **Keep decisions and structure current.** Give each locked decision its own D-numbered memory and index entry; add content before updating `Map — how this workspace is kept`, keep every memory within two hops, and write routes in words someone would actually ask with.
-5. **Grow deliberately.** Keep `Map — how this workspace is kept` flat until roughly twenty memories, promote real clusters behind hubs, and after imports propose title and routing improvements before applying the reviewed structure as a new `Map — how this workspace is kept` version.
+## Operations
 
-Read [references/conventions.md](references/conventions.md) before writing memories, recording decisions, maintaining maps or hubs, or organizing an import. The writing and structure rules apply to any selected workspace, however it was selected.
+| Operation | Command |
+|---|---|
+| load the workspace context | `recuerd0 workspace context <ws> --pretty` |
+| search | `recuerd0 search <query>` |
+| read a memory | `recuerd0 memory show <id>`; `memory read grep` then `memory read lines` for large ones |
+| create a memory | `recuerd0 memory create` |
+| create a version | `recuerd0 memory version create <id> --workspace <ws>` |
+| update a memory | `recuerd0 memory update <id>` |
+| link memories | `recuerd0 memory link add <id> --to <other>` |
 
 ## Output format
 
@@ -74,7 +80,11 @@ For large memories, prefer `memory read` over `memory show` so you only pull the
 
 ### Memory Links
 
-Memory links (tunnels) connect two memories that cover related topics, including across workspaces within the same account. Links are undirected, unlabeled, and same-account-only — cross-account or self-links are rejected with `422`. The CLI hides the join row id: `memory link remove` takes the *other* memory's id via `--to`. Memory and pinned-memory responses include a `links_count` field.
+Memory links (tunnels) connect memories across workspaces within the same account.
+Within a single workspace, use the map's routing lines instead. Links are undirected,
+unlabeled, and same-account-only — cross-account or self-links are rejected with `422`.
+The CLI hides the join row id: `memory link remove` takes the *other* memory's id via
+`--to`. Memory and pinned-memory responses include a `links_count` field.
 
 ### Memory Versions
 
@@ -203,54 +213,9 @@ workspace: 22
 1. **Use the recuerd0 CLI directly** via the Bash tool — do not use curl or raw HTTP
 2. **Always use `--pretty`** for readable output when presenting to the user
 3. **Parse JSON output** and present results in a readable format with relevant IDs
-4. **Search before creating** to avoid duplicate memories
-5. **Use `--workspace`** flag or ensure `.recuerd0.yaml` exists in the project root
-6. **For large content**, write to a temp file and pipe via stdin: `cat file.md | recuerd0 memory create --workspace <id> --content -`
-7. **Deleting a memory deletes all its versions** — there is no way to delete a single version
-
-## Workflows
-
-### Pre-session context loading
-
-Before starting a complex task, search recuerd0 for relevant project knowledge:
-
-```bash
-recuerd0 search "authentication" --pretty
-recuerd0 search "database schema" --workspace 22 --pretty
-```
-
-### Capture knowledge during a session
-
-Save discoveries, patterns, and decisions as memories:
-
-```bash
-recuerd0 memory create --workspace 22 \
-  --title "Redis caching pattern" \
-  --content "Use read-through caching with 5min TTL for..." \
-  --tags "caching,redis,patterns" \
-  --pretty
-```
-
-### Version evolving knowledge
-
-When a decision or pattern changes, create a new version instead of updating:
-
-```bash
-recuerd0 memory version create 42 --workspace 22 \
-  --content "Updated: Now using write-behind caching..." \
-  --title "Redis caching pattern v2" \
-  --pretty
-```
-
-### Organize with workspaces
-
-Create project-specific workspaces to keep knowledge organized:
-
-```bash
-recuerd0 workspace create --name "my-rails-app" \
-  --description "Architecture decisions and patterns for the Rails app" \
-  --pretty
-```
+4. **Use `--workspace`** flag or ensure `.recuerd0.yaml` exists in the project root
+5. **For large content**, write to a temp file and pipe via stdin: `cat file.md | recuerd0 memory create --workspace <id> --content -`
+6. **Deleting a memory deletes all its versions** — there is no way to delete a single version
 
 ## Exit Codes
 
