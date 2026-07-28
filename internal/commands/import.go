@@ -2,12 +2,19 @@ package commands
 
 import (
 	stderrors "errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/maquina/recuerd0-cli/internal/errors"
 	"github.com/maquina/recuerd0-cli/internal/importer"
+	"github.com/maquina/recuerd0-cli/internal/response"
 )
 
 var importCmd = &cobra.Command{
@@ -22,7 +29,20 @@ var (
 	importProposeLedger    string
 	importProposeAdapter   string
 	importProposeFresh     bool
+	importGuidanceOutput   io.Writer = os.Stderr
+	importGuidanceIsTTY              = func() bool {
+		return term.IsTerminal(int(os.Stderr.Fd()))
+	}
 )
+
+const importProposeGuidance = `Plan written to %s
+
+Review it — the manifest lists one entry per file with the title, category and
+tags it will use. Edit the file if something is wrong.
+
+  recuerd0 import commit %s --dry-run    validate without writing
+  recuerd0 import commit %s              execute after review
+`
 
 var importProposeCmd = &cobra.Command{
 	Use:   "propose <path>",
@@ -38,8 +58,13 @@ var importProposeCmd = &cobra.Command{
 			exitWithError(errors.NewInvalidArgsError("--workspace must be a positive integer"))
 			return
 		}
+		planPath, err := filepath.Abs(filepath.Clean(importProposePlan))
+		if err != nil {
+			exitWithError(errors.NewError(fmt.Sprintf("resolve plan path: %v", err)))
+			return
+		}
 		_, digest, err := importer.Propose(getClient(), importer.ProposeOptions{
-			SourcePath: args[0], PlanPath: importProposePlan,
+			SourcePath: args[0], PlanPath: planPath,
 			LedgerPath: importProposeLedger, Adapter: importProposeAdapter,
 			Workspace: workspace, Fresh: importProposeFresh,
 		})
@@ -47,7 +72,7 @@ var importProposeCmd = &cobra.Command{
 			exitWithError(importCommandError(err))
 			return
 		}
-		printSuccess(digest)
+		printImportProposeSuccess(digest, importPlanDisplayPath(planPath))
 	},
 }
 
@@ -95,6 +120,37 @@ func importCommandError(err error) error {
 		return errors.NewInvalidArgsError(validation.Error())
 	}
 	return errors.NewError(err.Error())
+}
+
+func importPlanDisplayPath(planPath string) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return planPath
+	}
+	relative, err := filepath.Rel(cwd, planPath)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return planPath
+	}
+	return filepath.Clean(relative)
+}
+
+func printImportProposeSuccess(digest importer.Digest, planPath string) {
+	resp := response.Success(digest)
+	if testMode {
+		testResult.Response = resp
+		testResult.ExitCode = 0
+		printImportGuidance(planPath)
+		panic(testExitSignal{})
+	}
+	resp.Print()
+	printImportGuidance(planPath)
+}
+
+func printImportGuidance(planPath string) {
+	if !importGuidanceIsTTY() {
+		return
+	}
+	fmt.Fprintf(importGuidanceOutput, importProposeGuidance, planPath, planPath, planPath)
 }
 
 func init() {

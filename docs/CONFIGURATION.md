@@ -57,6 +57,9 @@ recuerd0 account add personal --token tok_abc123
 # Add with custom API URL
 recuerd0 account add work --token tok_xyz789 --api-url https://work.recuerd0.ai
 
+# Add without contacting the API (offline or air-gapped setup)
+recuerd0 account add offline --token tok_offline --skip-verify
+
 # List accounts
 recuerd0 account list
 
@@ -66,6 +69,8 @@ recuerd0 account select work
 # Remove an account
 recuerd0 account remove old-account
 ```
+
+By default, `account add` verifies the submitted credentials with `GET /workspaces` before writing the account to disk. `--skip-verify` is intended for offline or air-gapped configuration and persists the account without checking whether its URL is reachable or its token is accepted.
 
 ## Example Workflows
 

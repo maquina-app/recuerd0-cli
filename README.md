@@ -73,7 +73,7 @@ recuerd0 search "error handling"
 ## Commands
 
 ```
-recuerd0 account add <name> --token TOKEN [--api-url URL]
+recuerd0 account add <name> --token TOKEN [--api-url URL] [--skip-verify]
 recuerd0 account list
 recuerd0 account select <name>
 recuerd0 account remove <name>
@@ -200,6 +200,8 @@ recuerd0 account add personal --token tok_abc123
 recuerd0 account add work --token tok_xyz789 --api-url https://work.recuerd0.ai
 recuerd0 account select work
 ```
+
+`account add` verifies the submitted token and API URL by listing workspaces before saving the account. Use `--skip-verify` only when preparing configuration offline or in an air-gapped environment; it saves the credentials without contacting the API.
 
 ### Per-project config
 
