@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 
@@ -30,6 +31,8 @@ var (
 	memoryListWorkspace string
 	memoryListPage      string
 	memoryListCategory  string
+	memoryListTags      string
+	memoryListSource    string
 )
 
 const invalidCategoryMsg = "--category must be one of: decision, discovery, preference, general"
@@ -60,6 +63,12 @@ var memoryListCmd = &cobra.Command{
 		}
 		if memoryListCategory != "" {
 			params = append(params, "category="+memoryListCategory)
+		}
+		if memoryListTags != "" {
+			params = append(params, "tags="+url.QueryEscape(memoryListTags))
+		}
+		if memoryListSource != "" {
+			params = append(params, "source="+url.QueryEscape(memoryListSource))
 		}
 		if len(params) > 0 {
 			path += "?" + strings.Join(params, "&")
@@ -333,6 +342,8 @@ func init() {
 	memoryListCmd.Flags().StringVar(&memoryListWorkspace, "workspace", "", "workspace ID")
 	memoryListCmd.Flags().StringVar(&memoryListPage, "page", "", "page number")
 	memoryListCmd.Flags().StringVar(&memoryListCategory, "category", "", "filter by category (decision, discovery, preference, general)")
+	memoryListCmd.Flags().StringVar(&memoryListTags, "tags", "", "filter by tags (comma-separated)")
+	memoryListCmd.Flags().StringVar(&memoryListSource, "source", "", "filter by source")
 	memoryCmd.AddCommand(memoryListCmd)
 
 	memoryShowCmd.Flags().StringVar(&memoryShowWorkspace, "workspace", "", "workspace ID")

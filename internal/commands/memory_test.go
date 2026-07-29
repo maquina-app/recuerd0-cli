@@ -9,6 +9,14 @@ import (
 	"github.com/maquina/recuerd0-cli/internal/errors"
 )
 
+func resetMemoryListGlobals() {
+	memoryListWorkspace = ""
+	memoryListPage = ""
+	memoryListCategory = ""
+	memoryListTags = ""
+	memoryListSource = ""
+}
+
 func TestMemoryList(t *testing.T) {
 	mock := NewMockClient()
 	mock.GetResponse = &client.APIResponse{
@@ -20,8 +28,8 @@ func TestMemoryList(t *testing.T) {
 	SetTestConfigFull("tok_test", "https://api.example.com", "5")
 	defer ResetTestMode()
 
-	memoryListWorkspace = ""
-	defer func() { memoryListWorkspace = ""; memoryListPage = "" }()
+	resetMemoryListGlobals()
+	defer resetMemoryListGlobals()
 
 	RunTestCommand(func() {
 		memoryListCmd.Run(memoryListCmd, []string{})
@@ -46,8 +54,9 @@ func TestMemoryList_WithExplicitWorkspace(t *testing.T) {
 	SetTestConfig("tok_test", "https://api.example.com")
 	defer ResetTestMode()
 
+	resetMemoryListGlobals()
 	memoryListWorkspace = "99"
-	defer func() { memoryListWorkspace = "" }()
+	defer resetMemoryListGlobals()
 
 	RunTestCommand(func() {
 		memoryListCmd.Run(memoryListCmd, []string{})
@@ -67,7 +76,8 @@ func TestMemoryList_NoWorkspace(t *testing.T) {
 	SetTestConfig("tok_test", "https://api.example.com")
 	defer ResetTestMode()
 
-	memoryListWorkspace = ""
+	resetMemoryListGlobals()
+	defer resetMemoryListGlobals()
 
 	RunTestCommand(func() {
 		memoryListCmd.Run(memoryListCmd, []string{})
@@ -384,24 +394,94 @@ func TestMemoryUpdateWithCategory(t *testing.T) {
 	}
 }
 
-func TestMemoryListWithCategoryFilter(t *testing.T) {
-	mock := NewMockClient()
-	mock.GetResponse = &client.APIResponse{StatusCode: 200, Data: []interface{}{}}
-
-	result := SetTestMode(mock)
-	SetTestConfigFull("tok_test", "https://api.example.com", "5")
-	defer ResetTestMode()
-
-	memoryListCategory = "decision"
-	defer func() { memoryListCategory = "" }()
-
-	RunTestCommand(func() { memoryListCmd.Run(memoryListCmd, []string{}) })
-
-	if result.ExitCode != 0 {
-		t.Fatalf("expected 0, got %d", result.ExitCode)
+func TestMemoryListFilters(t *testing.T) {
+	tests := []struct {
+		name     string
+		page     string
+		category string
+		tags     string
+		source   string
+		wantPath string
+	}{
+		{
+			name:     "no filters",
+			wantPath: "/workspaces/5/memories",
+		},
+		{
+			name:     "tags only",
+			tags:     "fragua",
+			wantPath: "/workspaces/5/memories?tags=fragua",
+		},
+		{
+			name:     "source only",
+			source:   "fragua-execution",
+			wantPath: "/workspaces/5/memories?source=fragua-execution",
+		},
+		{
+			name:     "combined filters",
+			page:     "2",
+			category: "decision",
+			tags:     "fragua",
+			source:   "fragua-execution",
+			wantPath: "/workspaces/5/memories?page=2&category=decision&tags=fragua&source=fragua-execution",
+		},
+		{
+			name:     "escaped user content",
+			tags:     "a b",
+			wantPath: "/workspaces/5/memories?tags=a+b",
+		},
 	}
-	if !strings.Contains(mock.GetCalls[0].Path, "category=decision") {
-		t.Errorf("expected category=decision in path, got: %s", mock.GetCalls[0].Path)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := NewMockClient()
+			mock.GetResponse = &client.APIResponse{StatusCode: 200, Data: []interface{}{}}
+
+			result := SetTestMode(mock)
+			SetTestConfigFull("tok_test", "https://api.example.com", "5")
+			defer ResetTestMode()
+
+			resetMemoryListGlobals()
+			defer resetMemoryListGlobals()
+			memoryListPage = tt.page
+			memoryListCategory = tt.category
+			memoryListTags = tt.tags
+			memoryListSource = tt.source
+
+			RunTestCommand(func() { memoryListCmd.Run(memoryListCmd, []string{}) })
+
+			if result.ExitCode != 0 {
+				t.Fatalf("expected 0, got %d", result.ExitCode)
+			}
+			if got := mock.GetCalls[0].Path; got != tt.wantPath {
+				t.Errorf("request path = %q, want %q", got, tt.wantPath)
+			}
+		})
+	}
+}
+
+func TestMemoryListFilterFlags(t *testing.T) {
+	tests := []struct {
+		name  string
+		usage string
+	}{
+		{name: "tags", usage: "filter by tags (comma-separated)"},
+		{name: "source", usage: "filter by source"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			flag := memoryListCmd.Flags().Lookup(tt.name)
+			if flag == nil {
+				t.Fatalf("--%s flag is not registered", tt.name)
+			}
+			if flag.DefValue != "" {
+				t.Errorf("--%s default = %q, want empty string", tt.name, flag.DefValue)
+			}
+			if flag.Usage != tt.usage {
+				t.Errorf("--%s usage = %q, want %q", tt.name, flag.Usage, tt.usage)
+			}
+		})
 	}
 }
 
