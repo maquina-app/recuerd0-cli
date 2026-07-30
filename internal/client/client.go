@@ -8,11 +8,16 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/maquina/recuerd0-cli/internal/errors"
 )
+
+const maxRateLimitAttempts = 4
+
+var sleepAfterRateLimit = time.Sleep
 
 // Client implements the API interface for making HTTP requests to the Recuerd0 API.
 type Client struct {
@@ -45,65 +50,109 @@ func (c *Client) buildURL(path string) string {
 func (c *Client) doRequest(method, path string, body interface{}) (*APIResponse, error) {
 	url := c.buildURL(path)
 
-	var reqBody io.Reader
+	var data []byte
 	if body != nil {
-		data, err := json.Marshal(body)
+		var err error
+		data, err = json.Marshal(body)
 		if err != nil {
 			return nil, errors.NewError(fmt.Sprintf("marshaling request body: %v", err))
 		}
-		reqBody = bytes.NewReader(data)
 	}
 
-	req, err := http.NewRequest(method, url, reqBody)
-	if err != nil {
-		return nil, errors.NewNetworkError(fmt.Sprintf("creating request: %v", err))
+	attempts := maxRateLimitAttempts
+	if os.Getenv("RECUERD0_RATE_WAIT") == "0" {
+		attempts = 1
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	if c.Verbose {
-		fmt.Fprintf(os.Stderr, "--> %s %s\n", method, url)
-	}
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return nil, errors.NewNetworkError(fmt.Sprintf("request failed: %v", err))
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.NewNetworkError(fmt.Sprintf("reading response: %v", err))
-	}
-
-	if c.Verbose {
-		fmt.Fprintf(os.Stderr, "<-- %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
-	}
-
-	apiResp := &APIResponse{
-		StatusCode: resp.StatusCode,
-		Body:       respBody,
-		Location:   resp.Header.Get("Location"),
-		LinkNext:   parseLinkNext(resp.Header.Get("Link")),
-	}
-
-	// Parse JSON body
-	if len(respBody) > 0 {
-		var data interface{}
-		if err := json.Unmarshal(respBody, &data); err == nil {
-			apiResp.Data = data
+	for attempt := 1; attempt <= attempts; attempt++ {
+		var reqBody io.Reader
+		if body != nil {
+			reqBody = bytes.NewReader(data)
 		}
+
+		req, err := http.NewRequest(method, url, reqBody)
+		if err != nil {
+			return nil, errors.NewNetworkError(fmt.Sprintf("creating request: %v", err))
+		}
+
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+
+		if c.Verbose {
+			fmt.Fprintf(os.Stderr, "--> %s %s\n", method, url)
+		}
+
+		resp, err := c.HTTPClient.Do(req)
+		if err != nil {
+			return nil, errors.NewNetworkError(fmt.Sprintf("request failed: %v", err))
+		}
+
+		if resp.StatusCode == http.StatusTooManyRequests && attempt < attempts {
+			if c.Verbose {
+				fmt.Fprintf(os.Stderr, "<-- %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+			}
+			waitSeconds := retryAfterSeconds(resp.Header.Get("Retry-After"))
+			resp.Body.Close()
+			fmt.Fprintf(
+				os.Stderr,
+				"recuerd0: rate limited — waiting %ds before retrying (%d/3)\n",
+				waitSeconds,
+				attempt,
+			)
+			sleepAfterRateLimit(time.Duration(waitSeconds) * time.Second)
+			continue
+		}
+
+		respBody, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			return nil, errors.NewNetworkError(fmt.Sprintf("reading response: %v", readErr))
+		}
+
+		if c.Verbose {
+			fmt.Fprintf(os.Stderr, "<-- %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+		}
+
+		apiResp := &APIResponse{
+			StatusCode: resp.StatusCode,
+			Body:       respBody,
+			Location:   resp.Header.Get("Location"),
+			LinkNext:   parseLinkNext(resp.Header.Get("Link")),
+		}
+
+		// Parse JSON body
+		if len(respBody) > 0 {
+			var responseData interface{}
+			if err := json.Unmarshal(respBody, &responseData); err == nil {
+				apiResp.Data = responseData
+			}
+		}
+
+		// Handle error status codes
+		if resp.StatusCode >= 400 {
+			msg := extractErrorMessage(apiResp.Data, respBody)
+			return nil, errors.FromHTTPStatus(resp.StatusCode, msg)
+		}
+
+		return apiResp, nil
 	}
 
-	// Handle error status codes
-	if resp.StatusCode >= 400 {
-		msg := extractErrorMessage(apiResp.Data, respBody)
-		return nil, errors.FromHTTPStatus(resp.StatusCode, msg)
-	}
+	panic("rate-limit attempt loop ended unexpectedly")
+}
 
-	return apiResp, nil
+func retryAfterSeconds(header string) int {
+	seconds, err := strconv.Atoi(strings.TrimSpace(header))
+	if err != nil {
+		return 60
+	}
+	if seconds < 1 {
+		return 1
+	}
+	if seconds > 120 {
+		return 120
+	}
+	return seconds
 }
 
 func (c *Client) Get(path string) (*APIResponse, error) {
