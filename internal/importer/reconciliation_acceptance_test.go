@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -202,6 +203,43 @@ func TestDanglingLandedCreateIntentReconcilesOnResume(t *testing.T) {
 	}
 }
 
+func TestDanglingCreateIntentIgnoresSiblingLedgerClaims(t *testing.T) {
+	base, planPath, siblingID := prepareTitleMateResume(t, true)
+
+	summary, err := Commit(base, CommitOptions{PlanPath: planPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(base.postCalls) != 1 || summary.Ops.Created != 1 ||
+		summary.Rows.CompletedNow != 1 || !summary.Plan.Complete {
+		t.Fatalf("sibling claim did not allow create retry: summary=%#v posts=%#v", summary, base.postCalls)
+	}
+	siblingDetailPath := fmt.Sprintf("/workspaces/1/memories/%d.json", siblingID)
+	for _, path := range base.getCalls {
+		if path == siblingDetailPath {
+			t.Fatalf("claimed sibling received a detail GET: calls=%#v", base.getCalls)
+		}
+	}
+}
+
+func TestDanglingCreateIntentStillRejectsUnknownTitleMate(t *testing.T) {
+	base, planPath, siblingID := prepareTitleMateResume(t, false)
+
+	summary, err := Commit(base, CommitOptions{PlanPath: planPath})
+	const wantReason = "server state does not match the prior or intended tuple/version"
+	if err == nil || err.Error() != wantReason ||
+		summary.Aborted == nil || summary.Aborted.Reason != wantReason {
+		t.Fatalf("unknown title-mate classification changed: summary=%#v err=%v", summary, err)
+	}
+	if len(base.postCalls) != 0 || summary.Plan.Complete {
+		t.Fatalf("unknown title-mate must abort without retry: summary=%#v posts=%#v", summary, base.postCalls)
+	}
+	siblingDetailPath := fmt.Sprintf("/workspaces/1/memories/%d.json", siblingID)
+	if !containsString(base.getCalls, siblingDetailPath) {
+		t.Fatalf("unknown title-mate was not classified through a detail GET: calls=%#v", base.getCalls)
+	}
+}
+
 func TestPass1ValidationErrorDoesNotRetry(t *testing.T) {
 	base := newTestAPI()
 	planPath := proposeSingleMarkdown(t, base, "# One\n\nBody\n")
@@ -292,6 +330,102 @@ func TestPartialAbortAndResumeUseInvocationOnlySummaryCounters(t *testing.T) {
 		second.Plan.RowsRemaining != 0 || !second.Plan.Complete {
 		t.Fatalf("resume counters must be invocation-only: %#v", second)
 	}
+}
+
+func prepareTitleMateResume(t *testing.T, claimSibling bool) (*testAPI, string, int64) {
+	t.Helper()
+	root := t.TempDir()
+	source := filepath.Join(root, "vault")
+	const (
+		siblingPath    = "a.md"
+		danglingPath   = "b.md"
+		siblingContent = "# Shared\n\nSibling body\n"
+		danglingBody   = "# shared\n\nDangling body\n"
+		siblingID      = int64(77)
+	)
+	writeTestFile(t, filepath.Join(source, siblingPath), siblingContent)
+	writeTestFile(t, filepath.Join(source, danglingPath), danglingBody)
+	planPath := filepath.Join(root, "import.plan.yaml")
+	base := newTestAPI()
+	if _, _, err := Propose(base, ProposeOptions{
+		SourcePath: source,
+		PlanPath:   planPath,
+		Workspace:  1,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := LoadPlan(planPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sibling := findPlanRow(plan, siblingPath)
+	dangling := findPlanRow(plan, danglingPath)
+	if sibling == nil || dangling == nil ||
+		!strings.EqualFold(sibling.Title, dangling.Title) ||
+		sibling.Title == dangling.Title {
+		t.Fatalf("case-insensitive title-mate fixture is invalid: sibling=%#v dangling=%#v", sibling, dangling)
+	}
+	if !claimSibling {
+		sibling.Action = ActionSkip
+		for i := range plan.Exceptions {
+			if plan.Exceptions[i].Path == siblingPath {
+				plan.Exceptions[i].Resolution = ActionSkip
+			}
+		}
+		if err := SavePlanAtomic(planPath, plan); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	ledgerPath := filepath.Join(root, "import.ledger.jsonl")
+	if claimSibling {
+		siblingIntent := newIntent(
+			sibling.Path,
+			plan.Workspace,
+			ActionCreate,
+			1,
+			1,
+			sibling.SourceHash,
+			sibling.ContentHash,
+			1,
+			0,
+			0,
+		)
+		if err := AppendLedgerRecord(ledgerPath, siblingIntent); err != nil {
+			t.Fatal(err)
+		}
+		if err := AppendLedgerRecord(ledgerPath, newCommitted(siblingIntent, siblingID, false)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	danglingIntent := newIntent(
+		dangling.Path,
+		plan.Workspace,
+		ActionCreate,
+		1,
+		1,
+		dangling.SourceHash,
+		dangling.ContentHash,
+		1,
+		0,
+		0,
+	)
+	if err := AppendLedgerRecord(ledgerPath, danglingIntent); err != nil {
+		t.Fatal(err)
+	}
+
+	base.memories[siblingID] = memoryRecord{
+		ID:       siblingID,
+		Title:    sibling.Title,
+		Body:     siblingContent,
+		Tags:     append([]string(nil), sibling.Tags...),
+		Category: sibling.Category,
+		Source:   "import:" + plan.Adapter,
+		Version:  1,
+	}
+	base.getCalls = nil
+	base.postCalls = nil
+	return base, planPath, siblingID
 }
 
 func proposeSingleMarkdown(t *testing.T, api client.API, content string) string {
