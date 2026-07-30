@@ -49,6 +49,13 @@ tags it will use. Edit the file if something is wrong.
   recuerd0 import commit %s    execute after review
 `
 
+const importCommitFailureGuidance = `Import stopped — nothing was lost. Committed rows are saved in the ledger:
+  %s
+
+Resume with: recuerd0 import commit %s
+Completed rows are skipped automatically on re-run.
+`
+
 const (
 	importNoWritesNotice  = "Import plan contains no writes. Nothing was written."
 	importCancelledNotice = "Import cancelled. Nothing was written."
@@ -148,6 +155,7 @@ var importCommitCmd = &cobra.Command{
 
 		commitSummary, err := importer.Commit(apiClient, options)
 		if err != nil {
+			printImportCommitFailureGuidance(commitSummary.LedgerPath, args[0])
 			exitWithErrorAndData(importCommandError(err), commitSummary)
 			return
 		}
@@ -297,6 +305,13 @@ func printImportCommitGuidance(
 	for _, next := range breadcrumbs {
 		fmt.Fprintf(importGuidanceOutput, "  %s\n", next.Cmd)
 	}
+}
+
+func printImportCommitFailureGuidance(ledgerPath, planPath string) {
+	if !importGuidanceIsTTY() {
+		return
+	}
+	fmt.Fprintf(importGuidanceOutput, importCommitFailureGuidance, ledgerPath, planPath)
 }
 
 func printImportGuidance(planPath string) {
