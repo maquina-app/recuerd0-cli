@@ -49,7 +49,7 @@ tags it will use. Edit the file if something is wrong.
   recuerd0 import commit %s    execute after review
 `
 
-const importCommitFailureGuidance = `Import stopped — nothing was lost. Committed rows are saved in the ledger:
+const importCommitFailureGuidance = `Import stopped — nothing is lost. Anything already committed is recorded in the ledger:
   %s
 
 Resume with: recuerd0 import commit %s

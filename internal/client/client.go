@@ -96,9 +96,10 @@ func (c *Client) doRequest(method, path string, body interface{}) (*APIResponse,
 			resp.Body.Close()
 			fmt.Fprintf(
 				os.Stderr,
-				"recuerd0: rate limited — waiting %ds before retrying (%d/3)\n",
+				"recuerd0: rate limited — waiting %ds before retrying (%d/%d)\n",
 				waitSeconds,
 				attempt,
+				attempts-1,
 			)
 			sleepAfterRateLimit(time.Duration(waitSeconds) * time.Second)
 			continue

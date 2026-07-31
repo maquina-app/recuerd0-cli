@@ -131,8 +131,12 @@ func TestPost_RetriesRateLimitsWithFreshBody(t *testing.T) {
 	if want := []time.Duration{time.Second, time.Second}; !reflect.DeepEqual(sleeps, want) {
 		t.Fatalf("sleeps = %v, want %v", sleeps, want)
 	}
-	wantStderr := "recuerd0: rate limited — waiting 1s before retrying (1/3)\n" +
-		"recuerd0: rate limited — waiting 1s before retrying (2/3)\n"
+	wantStderr := fmt.Sprintf(
+		"recuerd0: rate limited — waiting 1s before retrying (1/%d)\n"+
+			"recuerd0: rate limited — waiting 1s before retrying (2/%d)\n",
+		maxRateLimitAttempts-1,
+		maxRateLimitAttempts-1,
+	)
 	if stderr != wantStderr {
 		t.Fatalf("stderr = %q, want %q", stderr, wantStderr)
 	}
@@ -173,9 +177,14 @@ func TestPost_RateLimitRetriesExhausted(t *testing.T) {
 	if want := []time.Duration{2 * time.Second, 2 * time.Second, 2 * time.Second}; !reflect.DeepEqual(sleeps, want) {
 		t.Fatalf("sleeps = %v, want %v", sleeps, want)
 	}
-	wantStderr := "recuerd0: rate limited — waiting 2s before retrying (1/3)\n" +
-		"recuerd0: rate limited — waiting 2s before retrying (2/3)\n" +
-		"recuerd0: rate limited — waiting 2s before retrying (3/3)\n"
+	wantStderr := fmt.Sprintf(
+		"recuerd0: rate limited — waiting 2s before retrying (1/%d)\n"+
+			"recuerd0: rate limited — waiting 2s before retrying (2/%d)\n"+
+			"recuerd0: rate limited — waiting 2s before retrying (3/%d)\n",
+		maxRateLimitAttempts-1,
+		maxRateLimitAttempts-1,
+		maxRateLimitAttempts-1,
+	)
 	if stderr != wantStderr {
 		t.Fatalf("stderr = %q, want %q", stderr, wantStderr)
 	}
@@ -228,8 +237,9 @@ func TestRetryAfterSeconds_DefaultsAndClamps(t *testing.T) {
 				t.Fatalf("sleeps = %v, want %v", sleeps, want)
 			}
 			wantStderr := fmt.Sprintf(
-				"recuerd0: rate limited — waiting %ds before retrying (1/3)\n",
+				"recuerd0: rate limited — waiting %ds before retrying (1/%d)\n",
 				tt.wantSecond,
+				maxRateLimitAttempts-1,
 			)
 			if stderr != wantStderr {
 				t.Fatalf("stderr = %q, want %q", stderr, wantStderr)
