@@ -327,33 +327,115 @@ Next actions:
 	assertCreateCommitEnvelope(t, result.Response, "Roasting notes", "https://app.example.com/workspaces/83")
 }
 
-func TestImportCommitFailureRetainsPartialSummaryAndTypedError(t *testing.T) {
+func TestImportCommitFailureGuidancePreservesEnvelope(t *testing.T) {
 	planPath := writeCommitPlan(t, []commitPlanRow{{path: "one.md", content: "# One\n\nBody\n", action: importer.ActionCreate}})
+	t.Chdir(filepath.Dir(planPath))
+	planArgument := "." + string(filepath.Separator) + filepath.Base(planPath)
+
+	nonTTYResponse, nonTTYExit, nonTTYStderr := runImportCommitFailureTest(t, planArgument, false)
+	nonTTYSummary, ok := nonTTYResponse.Data.(importer.CommitSummary)
+	if !ok || nonTTYSummary.Aborted == nil || !strings.Contains(nonTTYSummary.Aborted.Reason, "write rejected") {
+		t.Fatalf("partial summary lost: %#v", nonTTYResponse.Data)
+	}
+	if nonTTYExit != clierrors.ExitValidation ||
+		nonTTYResponse.Success ||
+		nonTTYResponse.Error == nil ||
+		nonTTYResponse.Error.Code != clierrors.CodeValidation {
+		t.Fatalf("expected typed validation failure: response=%#v exit=%d", nonTTYResponse, nonTTYExit)
+	}
+	if nonTTYStderr != "" {
+		t.Fatalf("non-TTY failure wrote recovery guidance: %q", nonTTYStderr)
+	}
+	if err := os.Remove(nonTTYSummary.LedgerPath); err != nil {
+		t.Fatal(err)
+	}
+
+	ttyResponse, ttyExit, ttyStderr := runImportCommitFailureTest(t, planArgument, true)
+	if ttyExit != nonTTYExit {
+		t.Fatalf("TTY changed exit code: tty=%d non-TTY=%d", ttyExit, nonTTYExit)
+	}
+	for _, pretty := range []bool{false, true} {
+		ttyJSON := normalizedResponseJSON(t, ttyResponse, pretty)
+		nonTTYJSON := normalizedResponseJSON(t, nonTTYResponse, pretty)
+		if !bytes.Equal(ttyJSON, nonTTYJSON) {
+			t.Fatalf("TTY changed failure envelope for pretty=%t:\nTTY: %s\nnon-TTY: %s", pretty, ttyJSON, nonTTYJSON)
+		}
+	}
+	wantGuidance := fmt.Sprintf(importCommitFailureGuidance, nonTTYSummary.LedgerPath, planArgument)
+	if ttyStderr != wantGuidance {
+		t.Fatalf("unexpected TTY recovery guidance:\ngot:\n%s\nwant:\n%s", ttyStderr, wantGuidance)
+	}
+}
+
+func TestImportCommitPreCommitFailuresEmitNoRecoveryGuidance(t *testing.T) {
+	t.Run("plan validation", func(t *testing.T) {
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		defer ResetTestMode()
+		stderr := setImportCommandIO(t, "", false, true)
+		resetImportCommitFlags(t)
+		importCommitYes = true
+
+		missingPlan := filepath.Join(t.TempDir(), "missing.plan.yaml")
+		RunTestCommand(func() { importCommitCmd.Run(importCommitCmd, []string{missingPlan}) })
+
+		if result.Response == nil || result.Response.Success || result.ExitCode == 0 {
+			t.Fatalf("expected plan validation failure: %#v", result)
+		}
+		if stderr.Len() != 0 {
+			t.Fatalf("plan validation emitted recovery guidance: %q", stderr.String())
+		}
+	})
+
+	t.Run("authentication", func(t *testing.T) {
+		planPath := writeCommitPlan(t, []commitPlanRow{{
+			path: "one.md", content: "# One\n\nBody\n", action: importer.ActionCreate,
+		}})
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		defer ResetTestMode()
+		SetTestConfig("", "https://api.example.com")
+		stderr := setImportCommandIO(t, "", false, true)
+		resetImportCommitFlags(t)
+		importCommitYes = true
+
+		RunTestCommand(func() { importCommitCmd.Run(importCommitCmd, []string{planPath}) })
+
+		if result.Response == nil || result.Response.Error == nil ||
+			result.Response.Error.Code != clierrors.CodeAuth {
+			t.Fatalf("expected auth failure: %#v", result)
+		}
+		if stderr.Len() != 0 {
+			t.Fatalf("auth failure emitted recovery guidance: %q", stderr.String())
+		}
+	})
+}
+
+func runImportCommitFailureTest(t *testing.T, planArgument string, tty bool) (*response.Response, int, string) {
+	t.Helper()
 	mock := NewMockClient()
 	mock.GetResponses = []*client.APIResponse{{
 		StatusCode: 200,
-		Data:       map[string]interface{}{"id": "83"},
+		Data: map[string]interface{}{
+			"id":   "83",
+			"name": "Roasting notes",
+			"url":  "https://app.example.com/workspaces/83",
+		},
 	}}
 	mock.PostError = clierrors.NewValidationError("write rejected")
 	result := SetTestMode(mock)
 	defer ResetTestMode()
 	SetTestConfig("token", "https://api.example.com")
-	setImportCommandIO(t, "", false, false)
+	stderr := setImportCommandIO(t, "", false, tty)
 	resetImportCommitFlags(t)
 	importCommitYes = true
 
-	RunTestCommand(func() { importCommitCmd.Run(importCommitCmd, []string{planPath}) })
+	RunTestCommand(func() { importCommitCmd.Run(importCommitCmd, []string{planArgument}) })
 
-	if result.ExitCode != clierrors.ExitValidation || result.Response == nil || result.Response.Success {
-		t.Fatalf("expected validation failure: %#v", result)
+	if result.Response == nil {
+		t.Fatal("commit failure emitted no envelope")
 	}
-	if result.Response.Error == nil || result.Response.Error.Code != clierrors.CodeValidation {
-		t.Fatalf("typed error lost: %#v", result.Response.Error)
-	}
-	summary, ok := result.Response.Data.(importer.CommitSummary)
-	if !ok || summary.Aborted == nil || !strings.Contains(summary.Aborted.Reason, "write rejected") {
-		t.Fatalf("partial summary lost: %#v", result.Response.Data)
-	}
+	return result.Response, result.ExitCode, stderr.String()
 }
 
 func runImportProposeGuidanceTest(t *testing.T, source, planPath string, tty bool) (*response.Response, string) {

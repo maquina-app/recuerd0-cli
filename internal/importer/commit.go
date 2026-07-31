@@ -541,6 +541,20 @@ func createsRoot(intent LedgerRecord) bool {
 func (runner *commitRunner) reconcile(intent LedgerRecord, version VersionData, memoryID int64) (reconcileState, int64, error) {
 	if createsRoot(intent) {
 		source := "import:" + runner.prepared.plan.Adapter
+		claimed := make(map[int64]bool)
+		for path, state := range runner.prepared.ledger.Paths {
+			if path == intent.Path || state == nil {
+				continue
+			}
+			if state.MemoryID != 0 {
+				claimed[state.MemoryID] = true
+			}
+			for _, revision := range state.Revisions {
+				if revision != nil && revision.MemoryID != 0 {
+					claimed[revision.MemoryID] = true
+				}
+			}
+		}
 		candidates, err := listWorkspaceMemories(runner.api, runner.prepared.plan.Workspace, version.Title, source)
 		if err != nil {
 			return reconcileUnexpected, 0, err
@@ -548,6 +562,9 @@ func (runner *commitRunner) reconcile(intent LedgerRecord, version VersionData, 
 		var matches []int64
 		unexpectedCandidate := false
 		for _, candidate := range candidates {
+			if claimed[candidate.ID] {
+				continue
+			}
 			if !strings.EqualFold(candidate.Title, version.Title) || candidate.Source != source {
 				continue
 			}
