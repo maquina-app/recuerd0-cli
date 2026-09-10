@@ -33,6 +33,7 @@ var (
 	memoryListCategory  string
 	memoryListTags      string
 	memoryListSource    string
+	memoryListInclude   string
 )
 
 const invalidCategoryMsg = "--category must be one of: decision, discovery, preference, general"
@@ -56,6 +57,19 @@ var memoryListCmd = &cobra.Command{
 			return
 		}
 
+		bc := []response.Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("recuerd0 memory show --workspace %s <memory_id>", ws), "View memory details"),
+			breadcrumb("create", fmt.Sprintf("recuerd0 memory create --workspace %s --title TITLE --content CONTENT", ws), "Create a memory"),
+		}
+
+		// An --include token we do not recognize widens retrieval by a name that
+		// matches nothing. Answer with an empty list rather than spending a
+		// request that would return the unwidened one.
+		if !IsValidInclude(memoryListInclude) {
+			printSuccessWithBreadcrumbs([]interface{}{}, unknownIncludeSummary(memoryListInclude), bc)
+			return
+		}
+
 		path := fmt.Sprintf("/workspaces/%s/memories", ws)
 		params := []string{}
 		if memoryListPage != "" {
@@ -69,6 +83,9 @@ var memoryListCmd = &cobra.Command{
 		}
 		if memoryListSource != "" {
 			params = append(params, "source="+url.QueryEscape(memoryListSource))
+		}
+		if inc := includeParam(memoryListInclude); inc != "" {
+			params = append(params, "include="+url.QueryEscape(inc))
 		}
 		if len(params) > 0 {
 			path += "?" + strings.Join(params, "&")
@@ -84,11 +101,6 @@ var memoryListCmd = &cobra.Command{
 		hasNext := resp.LinkNext != ""
 		items := countItems(resp.Data)
 		summary := fmt.Sprintf("%d memory(ies)", items)
-
-		bc := []response.Breadcrumb{
-			breadcrumb("show", fmt.Sprintf("recuerd0 memory show --workspace %s <memory_id>", ws), "View memory details"),
-			breadcrumb("create", fmt.Sprintf("recuerd0 memory create --workspace %s --title TITLE --content CONTENT", ws), "Create a memory"),
-		}
 
 		printSuccessWithPaginationAndBreadcrumbs(resp.Data, hasNext, resp.LinkNext, summary, bc)
 	},
@@ -344,6 +356,7 @@ func init() {
 	memoryListCmd.Flags().StringVar(&memoryListCategory, "category", "", "filter by category (decision, discovery, preference, general)")
 	memoryListCmd.Flags().StringVar(&memoryListTags, "tags", "", "filter by tags (comma-separated)")
 	memoryListCmd.Flags().StringVar(&memoryListSource, "source", "", "filter by source")
+	memoryListCmd.Flags().StringVar(&memoryListInclude, "include", "", "include otherwise-hidden memories (obsolete)")
 	memoryCmd.AddCommand(memoryListCmd)
 
 	memoryShowCmd.Flags().StringVar(&memoryShowWorkspace, "workspace", "", "workspace ID")

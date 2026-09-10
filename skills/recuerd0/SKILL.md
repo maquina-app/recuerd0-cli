@@ -54,13 +54,13 @@ recuerd0 workspace create --name "Name" [--description "Desc"]
 recuerd0 workspace update <id> --name "Name" [--description "Desc"]
 recuerd0 workspace archive <id>
 recuerd0 workspace unarchive <id>
-recuerd0 workspace context <id> [--limit N] [--no-body] [--max-body-chars N]
+recuerd0 workspace context <id> [--limit N] [--no-body] [--max-body-chars N] [--include obsolete]
 ```
 
 ### Memories
 
 ```bash
-recuerd0 memory list --workspace <ws_id> [--page N] [--category CAT]
+recuerd0 memory list --workspace <ws_id> [--page N] [--category CAT] [--include obsolete]
 recuerd0 memory show --workspace <ws_id> <memory_id>
 recuerd0 memory create --workspace <ws_id> --title "Title" --content "Body" [--tags "a,b"] [--source "src"] [--category CAT]
 recuerd0 memory update --workspace <ws_id> <memory_id> [--title "T"] [--content "C"] [--tags "a,b"] [--category CAT]
@@ -128,7 +128,7 @@ The agent's job ends at the plan. Never import by writing memories one-by-one th
 ### Search
 
 ```bash
-recuerd0 search "<query>" [--workspace <ws_id>] [--page N] [--category CAT]
+recuerd0 search "<query>" [--workspace <ws_id>] [--page N] [--category CAT] [--include obsolete]
 ```
 
 Supports FTS5 query operators:
@@ -158,6 +158,26 @@ Every memory carries a `category` — one of `decision`, `discovery`, `preferenc
 Invalid values (anything outside the four canonical ones) fail client-side with exit code 2 before any API call.
 
 Use `decision` for choices the team made, `discovery` for findings/bug root-causes, `preference` for style/workflow preferences, `general` for everything else.
+
+### Obsolete memories
+
+A memory tagged `obsolete`, `superseded`, or `deprecated` is retired knowledge. `memory list`, `search`, and `workspace context` exclude it by default, so what you get back is what still applies. Matching is case-insensitive and whole-tag — `Superseded` counts, `deprecated-api` is an ordinary topic tag.
+
+Retire a memory by tagging its **current version**; that is what retrieval reads. Nothing is deleted and version history stays intact.
+
+```bash
+# Retire a reversed decision
+recuerd0 memory version create --workspace 1 42 --tags "auth,superseded" \
+  --content "Superseded by the OAuth rollout in memory 87."
+
+# Audit what has been retired
+recuerd0 memory list --workspace 1 --include obsolete
+recuerd0 search "auth" --include obsolete
+```
+
+`--include obsolete` is required even when filtering for the tag directly — `memory list --tags obsolete` returns nothing without it. `memory show` and `memory read` are never filtered, so they take no `--include`. A token the CLI does not recognize matches nothing, so it returns an empty result set (exit 0, no API call) with a summary naming the token — never the unwidened list.
+
+When `search` withholds retired memories the summary carries an `(N obsolete hidden)` note and an `include-obsolete` breadcrumb repeats the query with the flag.
 
 ### Accounts
 

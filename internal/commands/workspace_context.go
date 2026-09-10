@@ -21,6 +21,7 @@ var (
 	workspaceContextLimit        int
 	workspaceContextNoBody       bool
 	workspaceContextMaxBodyChars int
+	workspaceContextInclude      string
 )
 
 var workspaceContextCmd = &cobra.Command{
@@ -41,6 +42,13 @@ var workspaceContextCmd = &cobra.Command{
 			exitWithError(errors.NewInvalidArgsError("--max-body-chars must be between 100 and 5000"))
 			return
 		}
+		// An --include token we do not recognize widens retrieval by a name that
+		// matches nothing. Answer with an empty payload rather than spending a
+		// request that would return the unwidened one.
+		if !IsValidInclude(workspaceContextInclude) {
+			printSuccessWithBreadcrumbs(map[string]interface{}{}, unknownIncludeSummary(workspaceContextInclude), workspaceContextBreadcrumbs(args[0]))
+			return
+		}
 
 		params := url.Values{}
 		params.Set("limit", strconv.Itoa(workspaceContextLimit))
@@ -48,6 +56,9 @@ var workspaceContextCmd = &cobra.Command{
 			params.Set("include_body", "false")
 		}
 		params.Set("max_body_chars", strconv.Itoa(workspaceContextMaxBodyChars))
+		if inc := includeParam(workspaceContextInclude); inc != "" {
+			params.Set("include", inc)
+		}
 
 		path := fmt.Sprintf("/workspaces/%s/context?%s", args[0], params.Encode())
 
@@ -58,19 +69,22 @@ var workspaceContextCmd = &cobra.Command{
 			return
 		}
 
-		bc := []response.Breadcrumb{
-			breadcrumb("show", fmt.Sprintf("recuerd0 workspace show %s", args[0]), "View workspace details"),
-			breadcrumb("list-memories", fmt.Sprintf("recuerd0 memory list --workspace %s", args[0]), "List memories in workspace"),
-			breadcrumb("search", "recuerd0 search \"<query>\"", "Search across memories"),
-		}
-
-		printSuccessWithBreadcrumbs(resp.Data, "Workspace context", bc)
+		printSuccessWithBreadcrumbs(resp.Data, "Workspace context", workspaceContextBreadcrumbs(args[0]))
 	},
+}
+
+func workspaceContextBreadcrumbs(id string) []response.Breadcrumb {
+	return []response.Breadcrumb{
+		breadcrumb("show", fmt.Sprintf("recuerd0 workspace show %s", id), "View workspace details"),
+		breadcrumb("list-memories", fmt.Sprintf("recuerd0 memory list --workspace %s", id), "List memories in workspace"),
+		breadcrumb("search", "recuerd0 search \"<query>\"", "Search across memories"),
+	}
 }
 
 func init() {
 	workspaceContextCmd.Flags().IntVar(&workspaceContextLimit, "limit", 10, "max pinned memories to include (1-50)")
 	workspaceContextCmd.Flags().BoolVar(&workspaceContextNoBody, "no-body", false, "exclude memory bodies (metadata only)")
 	workspaceContextCmd.Flags().IntVar(&workspaceContextMaxBodyChars, "max-body-chars", 500, "truncate each body to this many characters (100-5000)")
+	workspaceContextCmd.Flags().StringVar(&workspaceContextInclude, "include", "", "include otherwise-hidden memories (obsolete)")
 	workspaceCmd.AddCommand(workspaceContextCmd)
 }

@@ -14,6 +14,7 @@ var (
 	searchWorkspace string
 	searchPage      string
 	searchCategory  string
+	searchInclude   string
 )
 
 var searchCmd = &cobra.Command{
@@ -37,6 +38,14 @@ var searchCmd = &cobra.Command{
 			return
 		}
 
+		// An --include token we do not recognize widens retrieval by a name that
+		// matches nothing. Answer with an empty result set rather than spending a
+		// request that would return the unwidened list.
+		if !IsValidInclude(searchInclude) {
+			printSuccessWithBreadcrumbs([]interface{}{}, unknownIncludeSummary(searchInclude), searchBreadcrumbs())
+			return
+		}
+
 		params := url.Values{}
 		params.Set("q", query)
 		if searchWorkspace != "" {
@@ -47,6 +56,9 @@ var searchCmd = &cobra.Command{
 		}
 		if searchCategory != "" {
 			params.Set("category", searchCategory)
+		}
+		if inc := includeParam(searchInclude); inc != "" {
+			params.Set("include", inc)
 		}
 		path := "/search?" + params.Encode()
 
@@ -61,17 +73,34 @@ var searchCmd = &cobra.Command{
 		items := countSearchResults(resp.Data)
 		summary := fmt.Sprintf("%d result(s) for %q", items, query)
 
-		bc := []response.Breadcrumb{
-			breadcrumb("show", "recuerd0 memory show --workspace <id> <memory_id>", "View memory details"),
+		bc := searchBreadcrumbs()
+
+		// The server withholds memories tagged obsolete/superseded/deprecated and
+		// reports the count in obsolete_hidden. Say so, and offer the way back —
+		// otherwise a caller auditing retired knowledge never learns it exists.
+		if hidden := countObsoleteHidden(resp.Data); hidden > 0 {
+			summary += fmt.Sprintf(" (%d obsolete hidden)", hidden)
+			bc = append(bc, breadcrumb(
+				"include-obsolete",
+				fmt.Sprintf("recuerd0 search %q --include obsolete", query),
+				"Repeat the search including retired memories",
+			))
 		}
 
 		printSuccessWithPaginationAndBreadcrumbs(resp.Data, hasNext, resp.LinkNext, summary, bc)
 	},
 }
 
+func searchBreadcrumbs() []response.Breadcrumb {
+	return []response.Breadcrumb{
+		breadcrumb("show", "recuerd0 memory show --workspace <id> <memory_id>", "View memory details"),
+	}
+}
+
 func init() {
 	searchCmd.Flags().StringVar(&searchWorkspace, "workspace", "", "limit search to workspace")
 	searchCmd.Flags().StringVar(&searchPage, "page", "", "page number")
 	searchCmd.Flags().StringVar(&searchCategory, "category", "", "filter by category (decision, discovery, preference, general)")
+	searchCmd.Flags().StringVar(&searchInclude, "include", "", "include otherwise-hidden memories (obsolete)")
 	rootCmd.AddCommand(searchCmd)
 }

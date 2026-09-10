@@ -84,11 +84,11 @@ recuerd0 workspace create --name NAME [--description DESC]
 recuerd0 workspace update <id> [--name NAME] [--description DESC]
 recuerd0 workspace archive <id>
 recuerd0 workspace unarchive <id>
-recuerd0 workspace context <id> [--limit N] [--no-body] [--max-body-chars N]
+recuerd0 workspace context <id> [--limit N] [--no-body] [--max-body-chars N] [--include obsolete]
   # Wake-up payload for AI agents: workspace metadata + your pinned
   # memories filtered to this workspace, in one call.
 
-recuerd0 memory list [--workspace ID] [--page N] [--category CAT]
+recuerd0 memory list [--workspace ID] [--page N] [--category CAT] [--include obsolete]
 recuerd0 memory show [--workspace ID] <memory_id>
 recuerd0 memory create [--workspace ID] [--title T] [--content C | --content -] [--source S] [--tags t1,t2] [--category CAT]
 recuerd0 memory update [--workspace ID] <memory_id> [--title T] [--content C] [--source S] [--tags T] [--category CAT]
@@ -112,7 +112,7 @@ recuerd0 memory version create [--workspace ID] <memory_id> [--title T] [--conte
 recuerd0 import propose <path> --workspace ID [--plan import.plan.yaml] [--ledger PATH] [--adapter obsidian_markdown|workspace_export] [--fresh]
 recuerd0 import commit <plan> [--yes] [--ledger PATH]
 
-recuerd0 search <query> [--workspace ID] [--page N] [--category CAT]
+recuerd0 search <query> [--workspace ID] [--page N] [--category CAT] [--include obsolete]
   # Supports FTS5 operators: AND, OR, NOT, "phrases", title:field, body:field
   # Raw FTS5 applies to REST /search.json only; workspace UI & MCP search are phrase-safe (docs/API.md → Search).
 
@@ -140,6 +140,31 @@ The default ledger is `import.ledger.jsonl` beside the plan. Keep it: it supplie
 ### Categories
 
 Memories can be tagged with one of four categories: `decision`, `discovery`, `preference`, `general`. The `--category` flag is optional on create, update, version create, list, and search — the server defaults new memories to `general` when omitted, and list/search return all categories when omitted.
+
+### Obsolete memories
+
+A memory tagged `obsolete`, `superseded`, or `deprecated` is retired knowledge. `memory list`, `search`, and `workspace context` leave it out by default, so what comes back is what still applies. Matching is case-insensitive and whole-tag: `Superseded` counts, `deprecated-api` stays an ordinary topic tag.
+
+Pass `--include obsolete` to bring it back for an audit. The flag is required even when filtering explicitly for the tag — `memory list --tags obsolete` returns nothing without it.
+
+```bash
+# Retire a decision that was reversed — tag it, do not delete it
+recuerd0 memory version create --workspace 1 42 --tags "auth,superseded" \
+  --content "Superseded by the OAuth rollout in memory 87."
+
+# Current memories only (the default)
+recuerd0 memory list --workspace 1
+
+# Everything, including what has been retired
+recuerd0 memory list --workspace 1 --include obsolete
+recuerd0 search "auth" --include obsolete
+```
+
+Tag the memory's *current* version — that is what retrieval reads. `memory show` and `memory read` are never filtered: fetching by id always returns the memory, retired or not. Nothing is deleted and the version history stays intact.
+
+An `--include` token the CLI does not recognize matches nothing, so it returns an empty result set (exit 0) with a summary naming the token — it never falls back to the unwidened list.
+
+When `search` withholds retired memories it says so — the summary carries an `(N obsolete hidden)` note and an `include-obsolete` breadcrumb repeats the query with the flag.
 
 ### Memory Links
 

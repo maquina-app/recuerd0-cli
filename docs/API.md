@@ -248,6 +248,7 @@ GET /workspaces/:id/context.json
 | limit | integer | `10` | Max pinned memories to include. Clamped to `1..50`. |
 | include_body | boolean | `true` | When `false`, omits the memory `body` field. |
 | max_body_chars | integer | `500` | When `include_body=true`, truncate each body to this many characters. Clamped to `100..5000`. |
+| include | string | — | Comma-separated tokens widening what is returned. `obsolete` includes retired memories. See [Obsolete memories](#obsolete-memories). |
 
 **Response** `200 OK`
 
@@ -288,6 +289,42 @@ The endpoint supports HTTP caching: `If-None-Match` and `If-Modified-Since` requ
 
 ---
 
+## Obsolete memories
+
+A memory tagged `obsolete`, `superseded`, or `deprecated` (case-insensitive, whole-tag —
+`deprecated-api` is an ordinary tag) is retired knowledge. It is **excluded by default**
+from search, listings and workspace context, so a caller loading context is never woken on
+a decision that was reversed.
+
+Pass `include=obsolete` on any of those endpoints to get them back. The server ignores
+unrecognized tokens, so `include=obsolete,future_token` behaves exactly as
+`include=obsolete`. The CLI differs here: a token it does not recognize matches nothing,
+so it returns an empty result set (exit 0) without spending a request, rather than
+silently handing back the unwidened list. The flag is required even when filtering
+explicitly for the tag — `GET /memories.json?tags=obsolete` returns nothing without it.
+
+Fetching by identity is never filtered: `GET /workspaces/:id/memories/:id.json` returns an
+obsolete memory with no flag, which is why `memory show` and the `memory read` subcommands
+take no `--include`.
+
+`GET /search.json` reports what it withheld in `obsolete_hidden` (`0` when nothing was
+hidden, and always `0` when `include=obsolete` is passed). The CLI folds that count into
+the response summary and adds an `include-obsolete` breadcrumb.
+
+One exception worth knowing: `stats.total_memories` on `GET /workspaces/:id/context.json`
+is the workspace's total memory count and does not change with `include`. The memories it
+returns, and `stats.total_pinned`, do.
+
+**CLI flags**
+
+| Command | Flag |
+|---------|------|
+| `recuerd0 memory list` | `--include obsolete` |
+| `recuerd0 search` | `--include obsolete` |
+| `recuerd0 workspace context` | `--include obsolete` |
+
+---
+
 ## Memory Categories
 
 Every memory carries a `category` field drawn from a locked enum:
@@ -317,6 +354,7 @@ GET /workspaces/:workspace_id/memories.json
 |------|------|-------------|
 | page | integer | Page number (default: 1) |
 | category | string | Filter by category (`decision`, `discovery`, `preference`, `general`) |
+| include | string | Comma-separated tokens widening what is returned. `obsolete` includes retired memories. See [Obsolete memories](#obsolete-memories) |
 
 **Response**
 
@@ -571,6 +609,7 @@ GET /search.json?q=<query>
 | context | integer | No | Lines of context around each match, like `grep -C` (0-10, default: 0). Only used with `mode=grep` |
 | before | integer | No | Lines before each match, like `grep -B` (0-10). Overrides `context` for before. Only used with `mode=grep` |
 | after | integer | No | Lines after each match, like `grep -A` (0-10). Overrides `context` for after. Only used with `mode=grep` |
+| include | string | No | Comma-separated tokens widening what is returned. `obsolete` includes retired memories. See [Obsolete memories](#obsolete-memories) |
 
 **Query Operators**
 
@@ -593,6 +632,7 @@ The search query supports full FTS5 syntax:
 {
   "query": "architecture AND design",
   "total_results": 3,
+  "obsolete_hidden": 1,
   "results": [
     {
       "id": 1,
@@ -625,6 +665,7 @@ When `mode=grep`, each result includes `matches` (line-level matches with contex
 {
   "query": "architecture",
   "total_results": 2,
+  "obsolete_hidden": 0,
   "results": [
     {
       "id": 1,
