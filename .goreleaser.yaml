@@ -91,9 +91,9 @@ homebrew_casks:
       - recuerd0
     hooks:
       post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/recuerd0"]
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/recuerd0"], must_succeed: false
           end
 
 # .deb + .rpm via the built-in nfpm packager.
