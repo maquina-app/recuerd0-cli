@@ -84,7 +84,9 @@ Memory links (tunnels) connect memories across workspaces within the same accoun
 Within a single workspace, use the map's routing lines instead. Links are undirected,
 unlabeled, and same-account-only — cross-account or self-links are rejected with `422`.
 The CLI hides the join row id: `memory link remove` takes the *other* memory's id via
-`--to`. Memory and pinned-memory responses include a `links_count` field.
+`--to`. Memory and pinned-memory responses include a `links_count` field. Only an admin or
+the person who made a link can remove it (exit code 4 otherwise), and links can't be added or
+removed when either memory's workspace is archived.
 
 ### Memory Versions
 
@@ -93,7 +95,11 @@ recuerd0 memory version create <memory_id> --workspace <ws_id> \
   [--title "T"] [--content "C"] [--tags "a,b"] [--source "src"] [--category CAT]
 ```
 
-Creates a new version of a memory. Fields default to the parent version's values if omitted.
+Creates a new version of a memory. Fields default to the current version's values if omitted. A version identical to the current one, or a blank one over existing content, fails with exit code 6.
+
+`memory delete` removes the whole memory, given its root id or current version's id. An older version's id fails with exit code 6, and the message gives the root id.
+
+A memory can hold up to 50 tags of up to 100 characters each, and 1 MB of content. Going over fails with exit code 6.
 
 ### Imports
 
@@ -112,7 +118,7 @@ Directories auto-detect as Markdown/Obsidian imports; valid export-v1 JSON files
 #### Import review protocol
 
 1. Run propose and relay `adapter`, all `counts`, `titles_from_h1_pct`, `links_proposed`, `tags_proposed`, structured `exceptions`, `thin`, any `hint`, and `warnings` verbatim.
-2. Review the YAML only. Keep every manifest `action` aligned with all exception `resolution` values for the same path.
+2. Review the YAML only. Keep every manifest `action` aligned with all exception `resolution` values for the same path. Tell the human about `unimportable` (skipped because the API refuses it) and about `repeated_versions` and `blank_versions` (those versions won't land, so version numbers shift).
 3. After editing any scanner-owned field (`title`, `category`, `tags`, or `links`), re-run propose with the same source, workspace, plan, and ledger arguments. The edits are preserved and hashes refresh.
 4. Confirm every `target_memory_id` before approving `version`; never attach one to `create`.
 5. Show the human the final digest from propose and stop at the reviewed plan unless they explicitly say go.
@@ -144,7 +150,9 @@ Supports FTS5 query operators:
 | Column | `body:implementation` | Search only body field |
 | Group | `(meeting OR standup) AND notes` | Parentheses for precedence |
 
-`recuerd0 search` is the raw FTS5 contract above. The workspace UI and MCP `list_memories.query` use a different, safe contract: queries of three or more characters are phrase-wrapped (operators neutralized; trigram substring matching, so `rank` matches `ranking`), tags match by case-insensitive whole-tag equality, and FTS matches come first by relevance with tag-only matches following by recency. Don't carry operator syntax between the two.
+Search is one contract across the CLI, REST, the web app, and MCP, so results and operators are the same everywhere. Every bare word is matched as a substring (`rank` matches `ranking`), `deploy.sh` is searched rather than parsed, exact tags match too, and FTS matches come first by relevance. A query whose operators don't parse falls back to its words ANDed.
+
+Unquoted words under three characters are left out, because the index can't match them, so `how to deploy` searches for `how` and `deploy`. They come back in `ignored_words`, and the summary names them. A quoted phrase stays exact. A query that starts with `NOT` finds nothing, and one over 100 characters fails with exit code 6.
 
 ### Categories
 

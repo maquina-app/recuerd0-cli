@@ -156,10 +156,10 @@ func parseMarkdownFile(manifestPath, content string, rules Rules) rawMarkdownRow
 			Detail: "no non-fenced H1 heading",
 		})
 	}
-	if len([]rune(title)) > 255 {
+	if len([]rune(title)) > maxTitleLength {
 		exceptions = append(exceptions, Exception{
 			Path: manifestPath, Kind: "title_too_long", Resolution: ActionSkip,
-			Detail: fmt.Sprintf("title is %d characters (maximum 255)", len([]rune(title))),
+			Detail: fmt.Sprintf("title is %d characters (maximum %d)", len([]rune(title)), maxTitleLength),
 		})
 	}
 

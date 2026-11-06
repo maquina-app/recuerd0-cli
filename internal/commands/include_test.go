@@ -319,3 +319,16 @@ func TestWorkspaceContextUnknownIncludeReturnsEmpty(t *testing.T) {
 		t.Errorf("expected no Get calls, got %d", len(mock.GetCalls))
 	}
 }
+
+func TestIgnoredWordsReadsTheSearchPayload(t *testing.T) {
+	got := ignoredWords(map[string]interface{}{"ignored_words": []interface{}{"to", "in"}})
+	if len(got) != 2 || got[0] != "to" || got[1] != "in" {
+		t.Errorf("expected the words back, got %v", got)
+	}
+	if got := ignoredWords(map[string]interface{}{}); len(got) != 0 {
+		t.Errorf("absent means none, got %v", got)
+	}
+	if got := ignoredWords([]interface{}{}); len(got) != 0 {
+		t.Errorf("an older server's list payload means none, got %v", got)
+	}
+}

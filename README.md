@@ -123,7 +123,7 @@ recuerd0 version
 
 Import is propose → review → commit: `propose` writes a reviewable `import.plan.yaml` and never touches the server; `commit` executes the plan you approved.
 
-`import propose` scans an Obsidian/Markdown directory or a Recuerd0 workspace-export v1 JSON file. It writes the plan atomically, uses GET requests only for title-conflict detection, and never creates or changes a memory. Review the digest and YAML together, keep each manifest `action` aligned with all exception `resolution` values for that path, and confirm every `target_memory_id` before approving versions.
+`import propose` scans an Obsidian/Markdown directory or a Recuerd0 workspace-export v1 JSON file. It writes the plan atomically, uses GET requests only for title-conflict detection, and never creates or changes a memory. Review the digest and YAML together, keep each manifest `action` aligned with all exception `resolution` values for that path, and confirm every `target_memory_id` before approving versions. Propose also flags what the API would refuse: files over its limits are skipped, and an export's repeated or blank versions are left out, so its version numbers can shift.
 
 ```bash
 recuerd0 import propose ./vault --workspace 12 --pretty
@@ -164,7 +164,7 @@ Tag the memory's *current* version — that is what retrieval reads. `memory sho
 
 An `--include` token the CLI does not recognize matches nothing, so it returns an empty result set (exit 0) with a summary naming the token — it never falls back to the unwidened list.
 
-When `search` withholds retired memories it says so — the summary carries an `(N obsolete hidden)` note and an `include-obsolete` breadcrumb repeats the query with the flag.
+When `search` withholds retired memories it says so — the summary carries an `(N obsolete hidden)` note and an `include-obsolete` breadcrumb repeats the query with the flag. It also names any unquoted words under three characters it left out, which the search index can't match.
 
 ### Memory Links
 

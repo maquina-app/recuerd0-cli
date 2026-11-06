@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -74,6 +75,11 @@ var searchCmd = &cobra.Command{
 		summary := fmt.Sprintf("%d result(s) for %q", items, query)
 
 		bc := searchBreadcrumbs()
+
+		// Otherwise "to in" reads as nothing matching, not as nothing searched.
+		if ignored := ignoredWords(resp.Data); len(ignored) > 0 {
+			summary += fmt.Sprintf(" (ignored words under 3 characters: %s)", strings.Join(ignored, ", "))
+		}
 
 		// The server withholds memories tagged obsolete/superseded/deprecated and
 		// reports the count in obsolete_hidden. Say so, and offer the way back —

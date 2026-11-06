@@ -98,6 +98,15 @@ var memoryReadTailCmd = &cobra.Command{
 			return
 		}
 
+		// A title-only memory has no last lines, and a range ending at 0 is refused.
+		if total == 0 {
+			bc := []response.Breadcrumb{
+				breadcrumb("show", fmt.Sprintf("recuerd0 memory show --workspace %s %s", ws, args[0]), "View the memory"),
+			}
+			printSuccessWithBreadcrumbs(probe.Data, "Memory tail", bc)
+			return
+		}
+
 		start := total - memoryReadTailLines + 1
 		if start < 1 {
 			start = 1

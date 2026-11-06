@@ -197,7 +197,12 @@ func extractErrorMessage(data interface{}, raw []byte) string {
 			return msg
 		}
 		// {"error": {"code": "...", "message": "...", "details": {"field": ["msg"]}}}
+		// message is the sentence written for people. details repeats it keyed by
+		// field, for code to read, so it is only a fallback.
 		if errObj, ok := m["error"].(map[string]interface{}); ok {
+			if msg, ok := errObj["message"].(string); ok && msg != "" {
+				return msg
+			}
 			if details, ok := errObj["details"].(map[string]interface{}); ok {
 				var parts []string
 				for field, val := range details {
@@ -212,9 +217,6 @@ func extractErrorMessage(data interface{}, raw []byte) string {
 				if len(parts) > 0 {
 					return strings.Join(parts, "; ")
 				}
-			}
-			if msg, ok := errObj["message"].(string); ok {
-				return msg
 			}
 		}
 		// {"message": "..."}

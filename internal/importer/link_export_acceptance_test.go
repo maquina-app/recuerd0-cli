@@ -112,7 +112,7 @@ func TestLinkFailureReconciliationAndRetryPolicy(t *testing.T) {
 	})
 }
 
-func TestFreshExportRepeatedTuplesKeepFixedRootIdentityAndOrdinalVersions(t *testing.T) {
+func TestFreshExportChainKeepsFixedRootIdentityAndOrdinalVersions(t *testing.T) {
 	root := t.TempDir()
 	exportPath := filepath.Join(root, "export.json")
 	writeTestFile(t, exportPath, `{
@@ -122,8 +122,8 @@ func TestFreshExportRepeatedTuplesKeepFixedRootIdentityAndOrdinalVersions(t *tes
   "memories": [{
     "root_id": 7,
     "versions": [
-      {"version": 1, "title": "Repeated", "body": "same", "tags": ["b", "a"], "category": "general"},
-      {"version": 2, "title": "Repeated", "body": "same", "tags": ["b", "a"], "category": "general"}
+      {"version": 1, "title": "Chain", "body": "first", "tags": ["b", "a"], "category": "general"},
+      {"version": 2, "title": "Chain", "body": "second", "tags": ["b", "a"], "category": "general"}
     ]
   }]
 }`)
@@ -142,10 +142,10 @@ func TestFreshExportRepeatedTuplesKeepFixedRootIdentityAndOrdinalVersions(t *tes
 	}
 	if summary.Ops.Created != 1 || summary.Ops.Versioned != 1 ||
 		summary.Ops.Reconciled != 0 || !summary.Plan.Complete {
-		t.Fatalf("fresh repeated export chain summary mismatch: %#v", summary)
+		t.Fatalf("fresh export chain summary mismatch: %#v", summary)
 	}
 	if got := api.memories[101]; got.ID != 101 || got.Version != 2 ||
-		got.Title != "Repeated" || got.Body != "same" {
+		got.Title != "Chain" || got.Body != "second" {
 		t.Fatalf("fresh export chain did not land at fixed root version 2: %#v", got)
 	}
 

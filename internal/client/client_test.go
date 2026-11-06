@@ -492,6 +492,23 @@ func TestExtractErrorMessage(t *testing.T) {
 	}{
 		{"error field", map[string]interface{}{"error": "bad request"}, nil, "bad request"},
 		{"message field", map[string]interface{}{"message": "not found"}, nil, "not found"},
+		{
+			"error message wins over details",
+			map[string]interface{}{"error": map[string]interface{}{
+				"message": "Title is too long (maximum is 255 characters)",
+				"details": map[string]interface{}{"title": []interface{}{"Title is too long (maximum is 255 characters)"}},
+			}},
+			nil,
+			"Title is too long (maximum is 255 characters)",
+		},
+		{
+			"details when there is no message",
+			map[string]interface{}{"error": map[string]interface{}{
+				"details": map[string]interface{}{"title": []interface{}{"is too long"}},
+			}},
+			nil,
+			"title is too long",
+		},
 		{"errors array", map[string]interface{}{"errors": []interface{}{"invalid name"}}, nil, "invalid name"},
 		{"raw body", nil, []byte("oops"), "oops"},
 		{"empty", nil, nil, "unknown error"},
