@@ -332,3 +332,23 @@ func TestIgnoredWordsReadsTheSearchPayload(t *testing.T) {
 		t.Errorf("an older server's list payload means none, got %v", got)
 	}
 }
+
+func TestSearchPassesInactiveThrough(t *testing.T) {
+	mock := NewMockClient()
+	mock.GetResponse = &client.APIResponse{StatusCode: 200, Data: map[string]interface{}{"results": []interface{}{}}}
+	result := SetTestMode(mock)
+	SetTestConfig("tok", "https://api.example.com")
+	defer ResetTestMode()
+
+	searchInclude = "obsolete,inactive"
+	defer func() { searchInclude = "" }()
+
+	RunTestCommand(func() { searchCmd.Run(searchCmd, []string{"deploy"}) })
+
+	if result.ExitCode != 0 || len(mock.GetCalls) != 1 {
+		t.Fatalf("expected one request, got exit %d and %d calls", result.ExitCode, len(mock.GetCalls))
+	}
+	if !strings.Contains(mock.GetCalls[0].Path, "include=obsolete%2Cinactive") {
+		t.Errorf("include was not sent: %s", mock.GetCalls[0].Path)
+	}
+}

@@ -31,7 +31,9 @@ func Review(options CommitOptions) (*Plan, Digest, string, error) {
 	if err != nil {
 		return nil, Digest{}, "", err
 	}
-	return prepared.plan, PlanDigest(prepared.plan), prepared.ledgerPath, nil
+	digest := PlanDigest(prepared.plan)
+	digest.LeftOut = leftOutRows(prepared.plan, prepared.ledger)
+	return prepared.plan, digest, prepared.ledgerPath, nil
 }
 
 // Commit executes write rows sequentially, recording an fsynced intent before
@@ -74,7 +76,35 @@ func Commit(api client.API, options CommitOptions) (CommitSummary, error) {
 	}
 	runner.ensureLinks()
 	runner.refreshSummary()
+	if left := leftOutRows(prepared.plan, prepared.ledger); len(left) > 0 {
+		return runner.summary, clierrors.NewValidationError(LeftOutMessage(left))
+	}
 	return runner.summary, nil
+}
+
+// leftOutRows are skipped because an earlier attempt may have written part of a
+// different revision of them, not because anyone chose to leave them out.
+func leftOutRows(plan *Plan, ledger *Ledger) []string {
+	var paths []string
+	for _, row := range plan.Manifest {
+		state := ledger.Paths[row.Path]
+		latest := state.lastLanded()
+		if row.Action == ActionSkip && latest != nil &&
+			latest.CommittedPrefix < latest.ChainLen && revisionForRow(state, row) != latest {
+			paths = append(paths, row.Path)
+		}
+	}
+	return paths
+}
+
+// LeftOutMessage says what commit couldn't import and how to get it in, because
+// the rest of the plan can finish and these still be missing.
+func LeftOutMessage(paths []string) string {
+	return fmt.Sprintf(
+		"%d row(s) were not imported because an earlier attempt may have written part of them: %s. "+
+			"Delete any memory it left, then run propose with a new --ledger path.",
+		len(paths), strings.Join(paths, ", "),
+	)
 }
 
 func prepareImport(options CommitOptions) (*preparedImport, error) {
@@ -162,15 +192,18 @@ func validateLedgerActions(plan *Plan, ledger *Ledger) error {
 	var problems []string
 	for _, row := range plan.Manifest {
 		state := ledger.Paths[row.Path]
-		if state == nil || len(state.Revisions) == 0 {
+		latest := state.lastLanded()
+		if latest == nil {
 			continue
 		}
-		latest := state.Revisions[len(state.Revisions)-1]
 		current := revisionForRow(state, row)
 		if latest.CommittedPrefix < latest.ChainLen {
 			if current == latest {
-				if row.Action != latest.Action {
-					problems = append(problems, fmt.Sprintf("%s: matching partial chain must resume action %q, got %q", row.Path, latest.Action, row.Action))
+				// A refusal settles what the server holds, so stopping here is safe. After
+				// a lost response it isn't known yet: the next commit finds out.
+				settled := row.Action == ActionSkip && latest.UnmatchedIntent == nil
+				if row.Action != latest.Action && !settled {
+					problems = append(problems, fmt.Sprintf("%s: an earlier attempt may have landed, so run commit again to settle it before changing this row (it must resume action %q, got %q)", row.Path, latest.Action, row.Action))
 				}
 			} else if row.Action != ActionSkip {
 				problems = append(problems, fmt.Sprintf("%s: a different-revision partial chain may only remain skipped", row.Path))
@@ -277,7 +310,7 @@ func (runner *commitRunner) preflightAll() error {
 			return &operationError{Path: row.Path, Ordinal: ordinal, Err: err}
 		}
 		state := runner.prepared.ledger.Paths[row.Path]
-		revision := revisionForRow(state, row)
+		revision := liveRevision(state, row)
 		if revision == nil {
 			if row.Action == ActionCreate {
 				runner.preflight[row.Path] = rowPreflight{chainBase: 0}
@@ -366,14 +399,13 @@ func (runner *commitRunner) preflightAll() error {
 func (runner *commitRunner) executeRow(row *PlanRow) error {
 	for {
 		state := runner.prepared.ledger.Paths[row.Path]
-		revision := revisionForRow(state, *row)
+		revision := liveRevision(state, *row)
 		if revision != nil && revision.CommittedPrefix == revision.ChainLen {
 			return nil
 		}
 		if revision != nil && revision.UnmatchedIntent != nil {
 			if err := runner.resumeIntent(row, *revision.UnmatchedIntent); err != nil {
-				runner.abort(row.Path, revision.UnmatchedIntent.Ordinal, err)
-				return err
+				return runner.stop(row, *revision.UnmatchedIntent, err)
 			}
 			continue
 		}
@@ -402,10 +434,29 @@ func (runner *commitRunner) executeRow(row *PlanRow) error {
 			return err
 		}
 		if err := runner.performIntent(row, intent, version, false); err != nil {
-			runner.abort(row.Path, ordinal, err)
-			return err
+			return runner.stop(row, intent, err)
 		}
 	}
+}
+
+// stop ends the run at this row, and writes down a refusal so a later attempt knows
+// nothing landed.
+func (runner *commitRunner) stop(row *PlanRow, intent LedgerRecord, err error) error {
+	runner.abort(row.Path, intent.Ordinal, err)
+	var refused *refusedError
+	if !errors.As(err, &refused) {
+		return err
+	}
+	if ledgerErr := AppendLedgerRecord(runner.prepared.ledgerPath, newRefused(intent)); ledgerErr != nil {
+		return ledgerErr
+	}
+	if ledgerErr := runner.reloadLedger(); ledgerErr != nil {
+		return ledgerErr
+	}
+	if httpStatus(err) == 422 {
+		runner.summary.Aborted.Next = "Fix this and run propose and commit again, or set its action and resolutions to skip and run commit again."
+	}
+	return err
 }
 
 func (runner *commitRunner) resumeIntent(row *PlanRow, intent LedgerRecord) error {
@@ -470,7 +521,7 @@ func (runner *commitRunner) performIntent(row *PlanRow, intent LedgerRecord, ver
 		return runner.recordCommitted(intent, memoryID, false)
 	}
 	if !retryable(err) {
-		return err
+		return asRefusal(err)
 	}
 
 	state, resolvedID, reconcileErr := runner.reconcile(intent, version, memoryID)
@@ -504,7 +555,7 @@ func (runner *commitRunner) performIntent(row *PlanRow, intent LedgerRecord, ver
 		}
 	}
 	if retryErr != nil && !retryable(retryErr) {
-		return retryErr
+		return asRefusal(retryErr)
 	}
 	state, resolvedID, reconcileErr = runner.reconcile(intent, version, memoryID)
 	if reconcileErr != nil {
@@ -523,6 +574,24 @@ func (runner *commitRunner) performIntent(row *PlanRow, intent LedgerRecord, ver
 		return fmt.Errorf("write retry exhausted: %w", retryErr)
 	}
 	return fmt.Errorf("write retry exhausted without the intended version appearing")
+}
+
+// refusedError is the server answering a write with a client error, so nothing
+// landed. It only ever wraps the POST's own answer: a 404 reading back a write that
+// succeeded says nothing of the kind.
+type refusedError struct {
+	err error
+}
+
+func (err *refusedError) Error() string { return err.err.Error() }
+func (err *refusedError) Unwrap() error { return err.err }
+
+func asRefusal(err error) error {
+	status := httpStatus(err)
+	if status >= 400 && status < 500 && status != 429 {
+		return &refusedError{err: err}
+	}
+	return err
 }
 
 func (runner *commitRunner) postVersion(intent LedgerRecord, version VersionData, memoryID int64) (*client.APIResponse, error) {
@@ -803,6 +872,16 @@ func revisionForRow(state *PathLedgerState, row PlanRow) *RevisionState {
 	return nil
 }
 
+// liveRevision is the revision a commit has to continue. One the server refused
+// before writing anything needs no continuing, so the row starts over.
+func liveRevision(state *PathLedgerState, row PlanRow) *RevisionState {
+	revision := revisionForRow(state, row)
+	if revision != nil && revision.landedNothing() {
+		return nil
+	}
+	return revision
+}
+
 func rowRevisionComplete(ledger *Ledger, row PlanRow) bool {
 	state := ledger.Paths[row.Path]
 	revision := revisionForRow(state, row)
@@ -824,6 +903,7 @@ func (runner *commitRunner) abort(path string, ordinal int, err error) {
 func (runner *commitRunner) refreshSummary() {
 	_ = runner.reloadLedger()
 	planSummary := PlanSummary{RowsTotal: len(runner.prepared.plan.Manifest)}
+	planSummary.RowsLeftOut = len(leftOutRows(runner.prepared.plan, runner.prepared.ledger))
 	rows := RowsSummary{}
 	for _, row := range runner.prepared.plan.Manifest {
 		complete := rowRevisionComplete(runner.prepared.ledger, row)
@@ -841,7 +921,7 @@ func (runner *commitRunner) refreshSummary() {
 			planSummary.RowsRemaining++
 		}
 	}
-	planSummary.Complete = planSummary.RowsRemaining == 0 &&
+	planSummary.Complete = planSummary.RowsRemaining == 0 && planSummary.RowsLeftOut == 0 &&
 		runner.summary.Aborted == nil &&
 		len(runner.summary.LinksFailed) == 0
 	runner.summary.Rows = rows

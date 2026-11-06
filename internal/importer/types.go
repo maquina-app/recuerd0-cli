@@ -103,6 +103,7 @@ type Digest struct {
 	Thin            bool        `json:"thin"`
 	Hint            string      `json:"hint,omitempty"`
 	Warnings        []string    `json:"warnings"`
+	LeftOut         []string    `json:"left_out,omitempty"`
 }
 
 type ProposeOptions struct {
@@ -136,6 +137,7 @@ type PlanSummary struct {
 	RowsCommitted  int  `json:"rows_committed"`
 	RowsReviewSkip int  `json:"rows_review_skip"`
 	RowsRemaining  int  `json:"rows_remaining"`
+	RowsLeftOut    int  `json:"rows_left_out"`
 	Complete       bool `json:"complete"`
 }
 
@@ -154,6 +156,7 @@ type Abort struct {
 	Path    string `json:"path,omitempty"`
 	Ordinal int    `json:"ordinal,omitempty"`
 	Reason  string `json:"reason"`
+	Next    string `json:"next,omitempty"`
 }
 
 type CommitSummary struct {

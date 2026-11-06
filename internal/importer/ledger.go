@@ -33,6 +33,8 @@ type RevisionState struct {
 	MemoryID        int64
 	Committed       map[int]LedgerRecord
 	Intents         map[int][]LedgerRecord
+	RefusedLines    map[int]int
+	lastKind        string
 	CommittedPrefix int
 	LastCommitted   *LedgerRecord
 	UnmatchedIntent *LedgerRecord
@@ -88,8 +90,8 @@ func LoadLedger(path string) (*Ledger, error) {
 }
 
 func validateLedgerRecord(record LedgerRecord) error {
-	if record.Kind != "intent" && record.Kind != "committed" {
-		return fmt.Errorf("kind must be intent or committed")
+	if record.Kind != "intent" && record.Kind != "committed" && record.Kind != "refused" {
+		return fmt.Errorf("kind must be intent, committed or refused")
 	}
 	if record.Path == "" || record.Workspace <= 0 || !validAction(record.Action) || record.Action == ActionSkip {
 		return fmt.Errorf("invalid path, workspace, or action")
@@ -103,12 +105,12 @@ func validateLedgerRecord(record LedgerRecord) error {
 	if record.ChainBase < 0 {
 		return fmt.Errorf("chain_base cannot be negative")
 	}
-	if record.Kind == "intent" {
+	if record.Kind != "committed" {
 		if !hashPattern.MatchString(record.IntendedContentHash) || record.ExpectedVersion <= 0 || record.AttemptedAt.IsZero() {
-			return fmt.Errorf("intent requires intended_content_hash, expected_version, and attempted_at")
+			return fmt.Errorf("%s requires intended_content_hash, expected_version, and attempted_at", record.Kind)
 		}
 		if record.ContentHash != "" || record.Version != 0 || record.Reconciled || !record.CommittedAt.IsZero() {
-			return fmt.Errorf("intent contains committed-only fields")
+			return fmt.Errorf("%s contains committed-only fields", record.Kind)
 		}
 	} else {
 		if record.MemoryID <= 0 || !hashPattern.MatchString(record.ContentHash) || record.Version <= 0 || record.CommittedAt.IsZero() {
@@ -141,7 +143,8 @@ func (ledger *Ledger) reconstruct() error {
 		if len(pathState.Revisions) > 0 {
 			revision = pathState.Revisions[len(pathState.Revisions)-1]
 		}
-		if revision == nil || (record.Kind == "intent" && record.Ordinal == 1 && revisionRecordsComplete(revision)) {
+		if revision == nil || (record.Kind == "intent" && record.Ordinal == 1 &&
+			(revisionRecordsComplete(revision) || (revision.lastKind == "refused" && len(revision.Committed) == 0))) {
 			revision = &RevisionState{
 				FirstLine:  record.Line,
 				SourceHash: record.SourceHash,
@@ -150,6 +153,8 @@ func (ledger *Ledger) reconstruct() error {
 				ChainBase:  record.ChainBase,
 				Committed:  make(map[int]LedgerRecord),
 				Intents:    make(map[int][]LedgerRecord),
+
+				RefusedLines: make(map[int]int),
 			}
 			pathState.Revisions = append(pathState.Revisions, revision)
 		} else {
@@ -172,7 +177,10 @@ func (ledger *Ledger) reconstruct() error {
 		if record.MemoryID != 0 {
 			revision.MemoryID = record.MemoryID
 		}
-		if record.Kind == "intent" {
+		revision.lastKind = record.Kind
+		if record.Kind == "refused" {
+			revision.RefusedLines[record.Ordinal] = record.Line
+		} else if record.Kind == "intent" {
 			existing := revision.Intents[record.Ordinal]
 			if len(existing) > 0 {
 				first := existing[0]
@@ -232,8 +240,10 @@ func (ledger *Ledger) reconstruct() error {
 			if next <= revision.ChainLen {
 				if intents := revision.Intents[next]; len(intents) > 0 {
 					last := intents[len(intents)-1]
-					copy := last
-					revision.UnmatchedIntent = &copy
+					if revision.RefusedLines[next] < last.Line {
+						copy := last
+						revision.UnmatchedIntent = &copy
+					}
 				}
 			}
 			for ordinal, intents := range revision.Intents {
@@ -292,6 +302,36 @@ func newIntent(path string, workspace int64, action string, ordinal, chainLen in
 		IntendedContentHash: contentHash, ExpectedVersion: expectedVersion,
 		ChainBase: chainBase, AttemptedAt: time.Now().UTC(),
 	}
+}
+
+// newRefused records that the server answered this intent with a refusal, so it
+// did not land. Without it a dangling intent could also be a lost response, whose
+// write may have happened.
+func newRefused(intent LedgerRecord) LedgerRecord {
+	record := intent
+	record.Kind = "refused"
+	record.Line = 0
+	record.AttemptedAt = time.Now().UTC()
+	return record
+}
+
+// landedNothing is a revision the server refused before any of it was written, so
+// it holds nothing a later attempt has to respect.
+func (revision *RevisionState) landedNothing() bool {
+	return revision.CommittedPrefix == 0 && revision.UnmatchedIntent == nil
+}
+
+// lastLanded is the newest revision that wrote something, or may have.
+func (state *PathLedgerState) lastLanded() *RevisionState {
+	if state == nil {
+		return nil
+	}
+	for i := len(state.Revisions) - 1; i >= 0; i-- {
+		if !state.Revisions[i].landedNothing() {
+			return state.Revisions[i]
+		}
+	}
+	return nil
 }
 
 func newCommitted(intent LedgerRecord, memoryID int64, reconciled bool) LedgerRecord {

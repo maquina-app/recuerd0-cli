@@ -83,9 +83,32 @@ func init() {
 
 // Execute runs the root command.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	rejectUnknownSubcommands(rootCmd)
+	if cmd, err := rootCmd.ExecuteC(); err != nil {
+		exitWithError(usageError(cmd, err))
+	}
+}
+
+// usageError is the one way a bad command line is reported, so a script parsing
+// the JSON envelope sees it too. Cobra only returns errors about the command line:
+// commands report their own failures through exitWithError.
+func usageError(cmd *cobra.Command, err error) error {
+	return errors.NewInvalidArgsError(fmt.Sprintf("%v (usage: %s)", err, cmd.UseLine()))
+}
+
+// rejectUnknownSubcommands makes a typo below the top level an error. Cobra answers
+// `memory nope` with the help text and exit 0, because `memory` has nothing to run.
+func rejectUnknownSubcommands(parent *cobra.Command) {
+	for _, cmd := range parent.Commands() {
+		if cmd.HasSubCommands() && !cmd.Runnable() {
+			cmd.RunE = func(cmd *cobra.Command, args []string) error {
+				if len(args) > 0 {
+					return fmt.Errorf("unknown command %q for %q", args[0], cmd.CommandPath())
+				}
+				return cmd.Help()
+			}
+		}
+		rejectUnknownSubcommands(cmd)
 	}
 }
 

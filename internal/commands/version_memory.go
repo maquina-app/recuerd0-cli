@@ -66,7 +66,8 @@ var memoryVersionCreateCmd = &cobra.Command{
 		if memoryVersionCreateSource != "" {
 			version["source"] = memoryVersionCreateSource
 		}
-		if memoryVersionCreateTags != "" {
+		// Asked for by name, an empty value clears the tags.
+		if memoryVersionCreateTags != "" || cmd.Flags().Changed("tags") {
 			tags := strings.Split(memoryVersionCreateTags, ",")
 			trimmed := make([]string, 0, len(tags))
 			for _, t := range tags {

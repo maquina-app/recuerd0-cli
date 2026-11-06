@@ -120,6 +120,10 @@ var importCommitCmd = &cobra.Command{
 			return
 		}
 		if digest.Counts.Create == 0 && digest.Counts.Version == 0 {
+			if len(digest.LeftOut) > 0 {
+				exitWithError(errors.NewValidationError(importer.LeftOutMessage(digest.LeftOut)))
+				return
+			}
 			fmt.Fprintln(importGuidanceOutput, importNoWritesNotice)
 			return
 		}
@@ -155,7 +159,9 @@ var importCommitCmd = &cobra.Command{
 
 		commitSummary, err := importer.Commit(apiClient, options)
 		if err != nil {
-			printImportCommitFailureGuidance(commitSummary.LedgerPath, args[0])
+			if commitSummary.Aborted != nil {
+				printImportCommitFailureGuidance(commitSummary.LedgerPath, args[0])
+			}
 			exitWithErrorAndData(importCommandError(err), commitSummary)
 			return
 		}

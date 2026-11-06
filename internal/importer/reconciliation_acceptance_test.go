@@ -14,9 +14,13 @@ type hookedAPI struct {
 	base      *testAPI
 	postCount int
 	postHook  func(api *hookedAPI, path string, body interface{}) (*client.APIResponse, error)
+	getHook   func(api *hookedAPI, path string) (*client.APIResponse, error)
 }
 
 func (api *hookedAPI) Get(path string) (*client.APIResponse, error) {
+	if api.getHook != nil {
+		return api.getHook(api, path)
+	}
 	return api.base.Get(path)
 }
 
@@ -259,8 +263,8 @@ func TestPass1ValidationErrorDoesNotRetry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ledger.Records) != 1 || ledger.Records[0].Kind != "intent" {
-		t.Fatalf("422 ledger should contain only the attempted intent: %#v", ledger.Records)
+	if len(ledger.Records) != 2 || ledger.Records[0].Kind != "intent" || ledger.Records[1].Kind != "refused" {
+		t.Fatalf("422 ledger should hold the attempted intent and its refusal: %#v", ledger.Records)
 	}
 }
 

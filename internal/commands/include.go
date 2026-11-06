@@ -9,8 +9,10 @@ import (
 // recuerd0 server. Keep in sync with ObsoleteFilterable on the Rails side.
 //
 // Retrieval hides memories tagged obsolete/superseded/deprecated by default;
-// `--include obsolete` brings them back for an audit.
-var ValidIncludeTokens = []string{"obsolete"}
+// `--include obsolete` brings them back for an audit. `inactive` adds memories from
+// archived and deleted workspaces to search. A list inside one workspace already
+// holds its own memories, so the server has nothing to add there and ignores it.
+var ValidIncludeTokens = []string{"obsolete", "inactive"}
 
 // NormalizeInclude splits a comma-separated --include value into trimmed,
 // lowercased tokens, dropping empties. The server parses the param the same way.

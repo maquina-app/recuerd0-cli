@@ -107,6 +107,6 @@ func init() {
 	searchCmd.Flags().StringVar(&searchWorkspace, "workspace", "", "limit search to workspace")
 	searchCmd.Flags().StringVar(&searchPage, "page", "", "page number")
 	searchCmd.Flags().StringVar(&searchCategory, "category", "", "filter by category (decision, discovery, preference, general)")
-	searchCmd.Flags().StringVar(&searchInclude, "include", "", "include otherwise-hidden memories (obsolete)")
+	searchCmd.Flags().StringVar(&searchInclude, "include", "", "include otherwise-hidden memories (obsolete, inactive)")
 	rootCmd.AddCommand(searchCmd)
 }

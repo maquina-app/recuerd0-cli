@@ -104,7 +104,9 @@ func Propose(api client.API, options ProposeOptions) (*Plan, Digest, error) {
 	if err := SavePlanAtomic(planPath, plan); err != nil {
 		return nil, Digest{}, err
 	}
-	return plan, PlanDigest(plan), nil
+	digest := PlanDigest(plan)
+	digest.LeftOut = leftOutRows(plan, ledger)
+	return plan, digest, nil
 }
 
 func rulesWithImportArtifactsExcluded(rules Rules, sourcePath string, artifactPaths ...string) Rules {
@@ -221,10 +223,10 @@ func classifyLedger(plan *Plan, ledger *Ledger) {
 	for i := range plan.Manifest {
 		row := &plan.Manifest[i]
 		state := ledger.Paths[row.Path]
-		if state == nil || len(state.Revisions) == 0 {
+		latest := state.lastLanded()
+		if latest == nil {
 			continue
 		}
-		latest := state.Revisions[len(state.Revisions)-1]
 		matching := revisionForRow(state, *row)
 		if latest.CommittedPrefix < latest.ChainLen {
 			if matching == latest {
@@ -239,7 +241,8 @@ func classifyLedger(plan *Plan, ledger *Ledger) {
 				row.TargetMemoryID = state.MemoryID
 				plan.Exceptions = append(plan.Exceptions, Exception{
 					Path: row.Path, Kind: "conflict", Resolution: ActionSkip,
-					Detail: "different-revision partial chain may only remain skipped",
+					Detail: "different-revision partial chain may only remain skipped: an earlier attempt may have written part of it. " +
+						"To import it, delete any memory it left, then run propose with a new --ledger path",
 				})
 			}
 			continue
@@ -306,7 +309,7 @@ func restoreReviewedTargets(plan, prior *Plan, ledger *Ledger) {
 	}
 	for i := range plan.Manifest {
 		row := &plan.Manifest[i]
-		if ledger.Paths[row.Path] != nil {
+		if ledger.Paths[row.Path].lastLanded() != nil {
 			continue
 		}
 		if target, ok := priorTargets[row.Path]; ok {
@@ -318,7 +321,7 @@ func restoreReviewedTargets(plan, prior *Plan, ledger *Ledger) {
 func classifyServerConflicts(api client.API, plan *Plan, ledger *Ledger) error {
 	needsListing := false
 	for _, row := range plan.Manifest {
-		if ledger.Paths[row.Path] == nil {
+		if ledger.Paths[row.Path].lastLanded() == nil {
 			needsListing = true
 			break
 		}
@@ -336,7 +339,7 @@ func classifyServerConflicts(api client.API, plan *Plan, ledger *Ledger) error {
 	}
 	for i := range plan.Manifest {
 		row := &plan.Manifest[i]
-		if ledger.Paths[row.Path] != nil {
+		if ledger.Paths[row.Path].lastLanded() != nil {
 			continue
 		}
 		matches := byTitle[strings.ToLower(row.Title)]
