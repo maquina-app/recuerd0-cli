@@ -123,7 +123,7 @@ Directories auto-detect as Markdown/Obsidian imports; valid export-v1 JSON files
 4. Confirm every `target_memory_id` before approving `version`; never attach one to `create`.
 5. Show the human the final digest from propose and stop at the reviewed plan unless they explicitly say go.
 6. After approval, execute commit; an agent has no TTY and therefore passes `--yes`.
-7. Report `ops` and `plan.complete`; also surface `aborted`, `links_failed`, or `links_skipped_unresolvable`.
+7. Report `ops` and `plan.complete`; also surface `aborted` with its `next`, `rows_left_out`, `links_failed`, or `links_skipped_unresolvable`. If commit stops on a refused row, fix the file and re-run propose and commit, or skip the row. A non-zero exit or `plan.complete: false` means something isn't imported, however much else landed.
 
 If present, relay this hint unchanged:
 
@@ -182,6 +182,8 @@ recuerd0 memory version create --workspace 1 42 --tags "auth,superseded" \
 recuerd0 memory list --workspace 1 --include obsolete
 recuerd0 search "auth" --include obsolete
 ```
+
+`--include inactive` adds memories from archived and deleted workspaces to `search`. Inside one workspace there is nothing to add, so `memory list` and `workspace context` return their usual list.
 
 `--include obsolete` is required even when filtering for the tag directly — `memory list --tags obsolete` returns nothing without it. `memory show` and `memory read` are never filtered, so they take no `--include`. A token the CLI does not recognize matches nothing, so it returns an empty result set (exit 0, no API call) with a summary naming the token — never the unwidened list.
 

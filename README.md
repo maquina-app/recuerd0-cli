@@ -162,6 +162,8 @@ recuerd0 search "auth" --include obsolete
 
 Tag the memory's *current* version — that is what retrieval reads. `memory show` and `memory read` are never filtered: fetching by id always returns the memory, retired or not. Nothing is deleted and the version history stays intact.
 
+`--include inactive` adds memories from archived and deleted workspaces to `search`. Inside one workspace there is nothing to add, so `memory list` and `workspace context` return their usual list.
+
 An `--include` token the CLI does not recognize matches nothing, so it returns an empty result set (exit 0) with a summary naming the token — it never falls back to the unwidened list.
 
 When `search` withholds retired memories it says so — the summary carries an `(N obsolete hidden)` note and an `include-obsolete` breadcrumb repeats the query with the flag. It also names any unquoted words under three characters it left out, which the search index can't match.

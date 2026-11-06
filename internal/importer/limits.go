@@ -106,14 +106,14 @@ func contentProblems(tags []string, body string) []string {
 
 // applyLimitExceptions skips rows the server would refuse. It runs after merging,
 // so tags a reviewer trimmed in the plan count rather than the source's. A row the
-// ledger already knows is left alone: it is either finished or has to resume.
+// ledger has written is left alone: it is either finished or has to resume.
 func applyLimitExceptions(plan *Plan, scanned []sourceRow, ledger *Ledger) {
 	sources := make(map[string]sourceRow, len(scanned))
 	for _, source := range scanned {
 		sources[source.Path] = source
 	}
 	for _, row := range plan.Manifest {
-		if revisionForRow(ledger.Paths[row.Path], row) != nil {
+		if liveRevision(ledger.Paths[row.Path], row) != nil {
 			continue
 		}
 		source := sources[row.Path]

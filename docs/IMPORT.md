@@ -111,9 +111,11 @@ Keep the ledger with the plan. It fixes:
 - gap-free committed ordinals;
 - dangling intents whose response may have been lost.
 
-On resume, commit uses the persisted base and expected version. It never replaces them with a newly observed server version. Concurrent advancement, ambiguous reconciliation, a 4xx pass-1 response, or read-back mismatch aborts with a non-zero exit (6 when the server refused a row) and a truthful partial summary.
+On resume, commit uses the persisted base and expected version. It never replaces them with a newly observed server version. Concurrent advancement, ambiguous reconciliation, a 4xx pass-1 response, or read-back mismatch aborts with a non-zero exit (6 when the server refused a row or a row was left out) and a truthful partial summary.
 
-An export that an older CLI stopped partway on a repeated or blank version can't resume, because its chain now has a different length. Propose keeps that row on `skip` with a conflict exception, and the memory stays at the versions that landed. To import it again, delete that memory, then propose with a new ledger path.
+Commit stops at the first refused row and records the refusal in the ledger, because a refused write didn't land. So fix the file and run propose and commit again on the same ledger, or set the row and its exceptions to `skip` and run commit again. The summary's `aborted.next` says the same.
+
+A row can't be replaced if an earlier attempt may have written part of it. That's a chain that stopped partway, a lost response, or a refusal under CLI 0.8.0 or an earlier version, which didn't record refusals. Run commit again to settle a lost response or an old refusal, while the file is unchanged. If the file has changed, or an export's chain now has a different length, propose keeps that row on `skip` with a conflict exception, lists it under `left_out`, and commit exits 6 with `plan.complete: false` and `rows_left_out` set, even when everything else finished. To import it, delete any memory it left, then run propose with a new `--ledger` path.
 
 After all memory/version rows, links run in a second pass. Link failures are non-fatal but appear in `links_failed` and keep `plan.complete` false. Missing ledger identities appear in `links_skipped_unresolvable`, but do not by themselves keep an otherwise finished plan from reporting `plan.complete: true`.
 

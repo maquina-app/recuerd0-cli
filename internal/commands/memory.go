@@ -197,6 +197,11 @@ var memoryCreateCmd = &cobra.Command{
 			memory["category"] = memoryCreateCategory
 		}
 
+		if len(memory) == 0 {
+			exitWithError(errors.NewInvalidArgsError("nothing to create: pass --title or --content"))
+			return
+		}
+
 		body := map[string]interface{}{"memory": memory}
 
 		apiClient := getClient()
@@ -265,7 +270,8 @@ var memoryUpdateCmd = &cobra.Command{
 		if memoryUpdateSource != "" {
 			memory["source"] = memoryUpdateSource
 		}
-		if memoryUpdateTags != "" {
+		// Asked for by name, an empty value clears the tags.
+		if memoryUpdateTags != "" || cmd.Flags().Changed("tags") {
 			memory["tags"] = parseTags(memoryUpdateTags)
 		}
 		if memoryUpdateCategory != "" {
@@ -374,7 +380,7 @@ func init() {
 	memoryUpdateCmd.Flags().StringVar(&memoryUpdateTitle, "title", "", "memory title")
 	memoryUpdateCmd.Flags().StringVar(&memoryUpdateContent, "content", "", "memory content (use - for stdin)")
 	memoryUpdateCmd.Flags().StringVar(&memoryUpdateSource, "source", "", "source of the memory")
-	memoryUpdateCmd.Flags().StringVar(&memoryUpdateTags, "tags", "", "comma-separated tags")
+	memoryUpdateCmd.Flags().StringVar(&memoryUpdateTags, "tags", "", "comma-separated tags (empty clears them)")
 	memoryUpdateCmd.Flags().StringVar(&memoryUpdateCategory, "category", "", "memory category (decision, discovery, preference, general)")
 	memoryCmd.AddCommand(memoryUpdateCmd)
 

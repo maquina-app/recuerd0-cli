@@ -459,8 +459,12 @@ func TestPartialChainFromBeforeDroppingStaysSkipped(t *testing.T) {
 		t.Fatalf("a partial chain of another length has to stay skipped: %#v", plan.Manifest[0])
 	}
 	posts := len(api.postCalls)
-	if _, err := Commit(api, CommitOptions{PlanPath: planPath}); err != nil {
-		t.Fatal(err)
+	summary, err := Commit(api, CommitOptions{PlanPath: planPath})
+	if err == nil || !strings.Contains(err.Error(), "new --ledger path") {
+		t.Fatalf("a row left out by an earlier failure can't pass as success: %v", err)
+	}
+	if summary.Plan.Complete || summary.Plan.RowsLeftOut != 1 {
+		t.Fatalf("expected an incomplete plan: %#v", summary.Plan)
 	}
 	if len(api.postCalls) != posts {
 		t.Fatalf("nothing should be written: %#v", api.postCalls)
