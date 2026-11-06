@@ -302,6 +302,15 @@ func (runner *commitRunner) preflightAll() error {
 				}
 				memoryCache[memoryID] = memory
 			}
+			// The server refuses both, and this is the last moment to say so before
+			// anything has been written.
+			first := sourceVersion(runner.prepared.plan.Adapter, runner.prepared.sources[row.Path], row, 1)
+			if memoryTupleEqual(memory, first) {
+				return fail(fmt.Errorf("already matches memory %d, so a new version would change nothing; set this row to skip", memoryID))
+			}
+			if blank(first.Body) && !blank(memory.Body) {
+				return fail(fmt.Errorf("has no content and would overwrite memory %d; set this row to skip", memoryID))
+			}
 			copy := memory
 			runner.preflight[row.Path] = rowPreflight{chainBase: memory.Version, memoryID: memoryID, prior: &copy}
 			continue
@@ -706,10 +715,10 @@ func verifyMemory(memory memoryRecord, intended VersionData, expectedVersion int
 	if memory.Title != intended.Title {
 		return fmt.Errorf("read-back title mismatch")
 	}
-	if memory.Body != intended.Body {
+	if storedBody(memory.Body) != storedBody(intended.Body) {
 		return fmt.Errorf("read-back body mismatch")
 	}
-	if !equalStringSlices(memory.Tags, intended.Tags) {
+	if !equalStringSlices(distinctTags(memory.Tags), distinctTags(intended.Tags)) {
 		return fmt.Errorf("read-back tag order mismatch")
 	}
 	if memory.Category != intended.Category {
@@ -719,8 +728,7 @@ func verifyMemory(memory memoryRecord, intended VersionData, expectedVersion int
 }
 
 func memoryTupleEqual(memory memoryRecord, intended VersionData) bool {
-	return memory.Title == intended.Title && memory.Body == intended.Body &&
-		equalStringSlices(memory.Tags, intended.Tags) && memory.Category == intended.Category
+	return sameVersion(VersionData{Title: memory.Title, Body: memory.Body, Tags: memory.Tags, Category: memory.Category}, intended)
 }
 
 func equalStringSlices(first, second []string) bool {

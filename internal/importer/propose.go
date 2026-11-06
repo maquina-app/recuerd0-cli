@@ -84,6 +84,7 @@ func Propose(api client.API, options ProposeOptions) (*Plan, Digest, error) {
 	}
 	mergeRows(plan, scanned.Rows, prior)
 	classifyLedger(plan, ledger)
+	applyLimitExceptions(plan, scanned.Rows, ledger)
 	if err := classifyServerConflicts(api, plan, ledger); err != nil {
 		return nil, Digest{}, err
 	}

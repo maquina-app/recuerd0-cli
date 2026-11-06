@@ -130,13 +130,18 @@ func decodeExportRows(workspaceID int64, items []interface{}) ([]sourceRow, erro
 			}
 			versions = append(versions, version)
 		}
-		latest := versions[len(versions)-1]
+		rowPath := fmt.Sprintf("workspace/%d/memories/%d", workspaceID, rootID)
+		// The hash stays on the whole chain: it identifies the export, not what lands.
+		sourceHash := exportSourceHash(versions)
+		kept, exceptions := chainForImport(rowPath, versions)
+		latest := kept[len(kept)-1]
 		rows = append(rows, sourceRow{
-			Path:  fmt.Sprintf("workspace/%d/memories/%d", workspaceID, rootID),
+			Path:  rowPath,
 			Title: latest.Title, Body: latest.Body,
 			Tags: append([]string(nil), latest.Tags...), Category: latest.Category,
-			SourceHash:        exportSourceHash(versions),
-			SourceWorkspaceID: workspaceID, RootID: rootID, Versions: versions,
+			SourceHash:        sourceHash,
+			SourceWorkspaceID: workspaceID, RootID: rootID, Versions: kept,
+			Exceptions: exceptions,
 		})
 	}
 	return rows, nil

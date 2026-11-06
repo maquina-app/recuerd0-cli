@@ -95,3 +95,23 @@ func countObsoleteHidden(data interface{}) int {
 		return 0
 	}
 }
+
+// ignoredWords reads `ignored_words` off a search payload: unquoted words too
+// short for the search index, which the server left out of this query.
+func ignoredWords(data interface{}) []string {
+	m, ok := data.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	values, ok := m["ignored_words"].([]interface{})
+	if !ok {
+		return nil
+	}
+	words := make([]string, 0, len(values))
+	for _, value := range values {
+		if word, ok := value.(string); ok {
+			words = append(words, word)
+		}
+	}
+	return words
+}

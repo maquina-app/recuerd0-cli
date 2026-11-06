@@ -277,7 +277,8 @@ func validAction(action string) bool {
 
 func validExceptionKind(kind string) bool {
 	switch kind {
-	case "conflict", "unparseable", "title_too_long", "guessed_title", "dupe_title", "dupe_exact":
+	case "conflict", "unparseable", "title_too_long", "guessed_title", "dupe_title", "dupe_exact",
+		"unimportable", "repeated_versions", "blank_versions":
 		return true
 	default:
 		return false

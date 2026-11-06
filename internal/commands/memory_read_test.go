@@ -166,6 +166,37 @@ func TestMemoryReadTail(t *testing.T) {
 	}
 }
 
+func TestMemoryReadTailOfTitleOnlyMemory(t *testing.T) {
+	mock := NewMockClient()
+	mock.GetResponses = []*client.APIResponse{
+		{
+			StatusCode: 200,
+			Data: map[string]interface{}{
+				"id":      42,
+				"content": map[string]interface{}{"total_lines": float64(0), "body": ""},
+			},
+		},
+	}
+
+	result := SetTestMode(mock)
+	SetTestConfigFull("tok", "https://api.example.com", "ws1")
+	defer ResetTestMode()
+
+	memoryReadResetTail()
+	defer memoryReadResetTail()
+
+	RunTestCommand(func() {
+		memoryReadTailCmd.Run(memoryReadTailCmd, []string{"42"})
+	})
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected exit 0, got %d", result.ExitCode)
+	}
+	if len(mock.GetCalls) != 1 {
+		t.Fatalf("there is nothing to slice, so expected only the probe, got %d calls", len(mock.GetCalls))
+	}
+}
+
 func TestMemoryReadTailInvalidLines(t *testing.T) {
 	mock := NewMockClient()
 	result := SetTestMode(mock)

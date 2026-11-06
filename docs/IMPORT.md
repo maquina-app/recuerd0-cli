@@ -66,13 +66,21 @@ The example removes `legacy` and turns `Team Notes` into the normalized tags `ar
 
 Propose assigns conservative defaults:
 
-- conflict, unparseable, title-too-long, and later body-identical duplicates: `skip`;
-- guessed titles and case-insensitive duplicate titles: `create`;
+- conflict, unparseable, title-too-long, unimportable, and later body-identical duplicates: `skip`;
+- guessed titles, case-insensitive duplicate titles, and exports with repeated or blank versions: `create`;
 - completed unchanged Markdown: `skip`;
 - completed changed Markdown: `version`;
 - completed changed exports: conflict and `skip`.
 
 When identical Markdown bodies occur, the lexicographically earliest path remains eligible to create. Only later paths receive `dupe_exact`.
+
+Commit stops at the first row the server refuses, so propose flags what it knows the server won't take:
+
+- `unimportable`: more than 50 tags, a tag over 100 characters, content over 1 MB, a null character, content that isn't valid UTF-8, a Markdown file emptied since it was imported, or an export memory with nothing in any version. The row is skipped and the rest of the import goes ahead. An export memory is skipped whole if any version is affected. For Markdown, trimming the row's `tags` clears a tag limit on the next propose; set `action` back to `create` to import it.
+- `repeated_versions`: an export version identical to the one before it. The server refuses these, and they hold nothing new, so they aren't imported.
+- `blank_versions`: an export version with no content, following one that has content. The server refuses these too. If the source's current version is blank, the imported memory ends on the last version with content.
+
+Dropped versions are why an imported memory can have fewer versions than its source, with different version numbers. The exception says how many land, so review it if the numbering matters. Setting the row to `skip` is the only alternative.
 
 ## 3. Commit
 
@@ -94,7 +102,7 @@ If source content changed, commit stops before pass 1 with:
 
 ## 4. Execution and recovery
 
-The default ledger is `import.ledger.jsonl` beside the plan. It is append-only JSONL. Every write has an fsynced `intent` before the POST and an fsynced `committed` record only after a fresh GET matches title, body, tag order, category, and expected server version.
+The default ledger is `import.ledger.jsonl` beside the plan. It is append-only JSONL. Every write has an fsynced `intent` before the POST and an fsynced `committed` record only after a fresh GET matches title, body, tag order, category, and expected server version. The match allows for what the server normalizes on save: a blank line added between a list and a code fence that follows it, and repeated tags dropped.
 
 Keep the ledger with the plan. It fixes:
 
@@ -103,7 +111,9 @@ Keep the ledger with the plan. It fixes:
 - gap-free committed ordinals;
 - dangling intents whose response may have been lost.
 
-On resume, commit uses the persisted base and expected version. It never replaces them with a newly observed server version. Concurrent advancement, ambiguous reconciliation, a 4xx pass-1 response, or read-back mismatch aborts with exit 2 and a truthful partial summary.
+On resume, commit uses the persisted base and expected version. It never replaces them with a newly observed server version. Concurrent advancement, ambiguous reconciliation, a 4xx pass-1 response, or read-back mismatch aborts with a non-zero exit (6 when the server refused a row) and a truthful partial summary.
+
+An export that an older CLI stopped partway on a repeated or blank version can't resume, because its chain now has a different length. Propose keeps that row on `skip` with a conflict exception, and the memory stays at the versions that landed. To import it again, delete that memory, then propose with a new ledger path.
 
 After all memory/version rows, links run in a second pass. Link failures are non-fatal but appear in `links_failed` and keep `plan.complete` false. Missing ledger identities appear in `links_skipped_unresolvable`, but do not by themselves keep an otherwise finished plan from reporting `plan.complete: true`.
 
